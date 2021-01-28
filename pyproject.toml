@@ -11,3 +11,10 @@ requires = [
     "traitlets",
 ]
 
+[tool.flit.metadata.requires-extra]
+test = [
+    "pytest",
+    "pytest-cov",
+    "jupyter_server",
+    "jupyter_client[test]",
+]
