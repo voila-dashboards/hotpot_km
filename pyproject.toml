@@ -1,0 +1,13 @@
+[build-system]
+requires = ["flit_core >=2,<4"]
+build-backend = "flit_core.buildapi"
+
+[tool.flit.metadata]
+module = "hotpot_km"
+author = "Vidar Tonaas Fauske"
+author-email = "vidartf@gmail.com"
+requires = [
+    "jupyter_client",
+    "traitlets",
+]
+
