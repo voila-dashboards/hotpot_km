@@ -9,10 +9,14 @@ from .. import (
     MaximumKernelsException,
 )
 
+# Prevent the base class from being collected directly
+TestKernelManager.__test__ = False
 
 
 # Test that it works as normal with default config
 class TestLimitedKernelManager(TestKernelManager):
+    __test__ = True
+
     def _get_tcp_km(self):
         c = Config()
         km = LimitedKernelManager(config=c)
@@ -27,7 +31,9 @@ class TestLimitedKernelManager(TestKernelManager):
 
 
 # Test that it works with a max of 4
-class TestLimitedKernelManager(TestKernelManager):
+class TestLimitedKernelManagerApplied(TestKernelManager):
+    __test__ = True
+
     def _get_tcp_km(self):
         c = Config()
         c.LimitedKernelManager.max_kernels = 4

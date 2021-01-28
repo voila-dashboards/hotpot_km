@@ -64,7 +64,7 @@ class PooledKernelManager(MultiKernelManager):
     def _should_use_pool(self, kernel_name, kwargs):
         """Verify name and kwargs, and check whether we should use the pool"""
         if "kernel_id" in kwargs:
-            return True
+            return False
 
         if self.strict_pool_names and kernel_name != self.pool_kernel_name:
             raise ValueError("Cannot start kernel with name %r" % (kernel_name,))
@@ -78,8 +78,8 @@ class PooledKernelManager(MultiKernelManager):
         )
 
     def pre_start_kernel(self, kernel_name, kwargs):
-        if not self._should_use_pool():
-            return super.pre_start_kernel(kernel_name, kwargs)
+        if not self._should_use_pool(kernel_name, kwargs):
+            return super().pre_start_kernel(kernel_name, kwargs)
 
         # TODO: Use a queue?
         kernel_id = tuple(self._pool.keys())[0]
