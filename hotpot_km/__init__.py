@@ -7,8 +7,11 @@
 This module contains
 """
 
-from jupyter_client.multikernelmanager import MultiKernelManager
-from traitlets import Bool, Dict, Integer, Unicode
+import asyncio
+from queue import SimpleQueue
+
+from jupyter_client.multikernelmanager import MultiKernelManager, AsyncMultiKernelManager
+from traitlets import Bool, Dict, Integer, List, Unicode, observe
 
 from ._version import __version__
 
@@ -28,7 +31,7 @@ class LimitedKernelManager(MultiKernelManager):
         return super().pre_start_kernel(kernel_name, kwargs)
 
 
-class PooledKernelManager(MultiKernelManager):
+class _PooledBase(MultiKernelManager):
     kernel_pool_size = Integer(0, config=True,
         help="The number of started kernels to keep on standby",
     )
@@ -49,17 +52,19 @@ class PooledKernelManager(MultiKernelManager):
         help="Whether to allow starting kernels with other kwargs than that of the pool"
     )
 
-    _pool = Dict()
+    _pool = List()
+
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fill_if_needed()
+        self.observe(self._pool_size_changed, 'kernel_pool_size')
 
-    def fill_if_needed(self):
-        """Start kernels until pool is full"""
-        for i in range(len(self) - len(self._pool)):
-            km, _, kernel_id = self.pre_start_kernel(self.pool_kernel_name, self.pool_kwargs)
-            _pool[kernel_id] = km
+    def _pool_size_changed(self, change):
+        if change['old'] > change['new']:
+            self.unfill_as_needed()
+        else:
+            self.fill_if_needed()
 
     def _should_use_pool(self, kernel_name, kwargs):
         """Verify name and kwargs, and check whether we should use the pool"""
@@ -77,18 +82,65 @@ class PooledKernelManager(MultiKernelManager):
             len(self._pool) > 0
         )
 
-    def pre_start_kernel(self, kernel_name, kwargs):
-        if not self._should_use_pool(kernel_name, kwargs):
-            return super().pre_start_kernel(kernel_name, kwargs)
+    def shutdown_all(self, *args, **kwargs):
+        super().shutdown_all(*args, **kwargs)
+        self._pool = []
 
-        # TODO: Use a queue?
-        kernel_id = tuple(self._pool.keys())[0]
-        km = self._pool.pop(kernel_id)
+
+class PooledKernelManager(_PooledBase):
+
+    def unfill_as_needed(self):
+        """Kills extra kernels in pool"""
+        for i in range(len(self._pool) - self.kernel_pool_size):
+            self._pool.pop(0).shutdown()
+
+    def fill_if_needed(self):
+        """Start kernels until pool is full"""
+        for i in range(self.kernel_pool_size - len(self._pool)):
+            self._pool.append(super().start_kernel(self.pool_kernel_name, **self.pool_kwargs))
+
+    def start_kernel(self, kernel_name=None, **kwargs):
+        if self._should_use_pool(kernel_name, kwargs):
+            ret = self._pool.pop(0)
+        else:
+            ret = super().start_kernel(kernel_name, **kwargs)
+
         try:
             self.fill_if_needed()
         except MaximumKernelsException:
             pass
-        return km, km.kernel_name, kernel_id
+        return ret
+
+
+async def _await_then_kill(aw):
+    await aw
+    await aw.result().shutdown()
+
+
+class AsyncPooledKernelManager(_PooledBase, AsyncMultiKernelManager):
+
+    def unfill_as_needed(self):
+        """Kills extra kernels in pool"""
+        for i in range(len(self._pool) - self.kernel_pool_size):
+            asyncio.create_task(_await_then_kill(self._pool.pop(0)))
+
+    def fill_if_needed(self):
+        """Start kernels until pool is full"""
+        for i in range(self.kernel_pool_size - len(self._pool)):
+            fut = super().start_kernel(self.pool_kernel_name, **self.pool_kwargs)
+            # Start the work on the loop immediately, so it is ready when needed:
+            self._pool.put(asyncio.create_task(fut))
+
+    async def start_kernel(self, kernel_name=None, **kwargs):
+        if not self._should_use_pool(kernel_name, kwargs):
+            return super().start_kernel(kernel_name, **kwargs)
+
+        task = self._pool.pop(0)
+        try:
+            self.fill_if_needed()
+        except MaximumKernelsException:
+            pass
+        return await task
 
 
 __all__ = [

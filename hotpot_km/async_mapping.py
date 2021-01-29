@@ -6,7 +6,7 @@ from . import LimitedKernelManager, PooledKernelManager
 
 class AsyncLimitedPooledMappingKernelManager(
     AsyncMappingKernelManager,
-    LimitedKernelManager,
-    PooledKernelManager
+    PooledKernelManager,
+    LimitedKernelManager
 ):
     pass
