@@ -6,7 +6,7 @@ from . import LimitedKernelManager, PooledKernelManager
 
 class LimitedPooledMappingKernelManager(
     MappingKernelManager,
-    LimitedKernelManager,
-    PooledKernelManager
+    PooledKernelManager,
+    LimitedKernelManager
 ):
     pass
