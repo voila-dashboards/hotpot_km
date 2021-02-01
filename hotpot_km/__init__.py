@@ -82,10 +82,6 @@ class _PooledBase(MultiKernelManager):
             len(self._pool) > 0
         )
 
-    def shutdown_all(self, *args, **kwargs):
-        super().shutdown_all(*args, **kwargs)
-        self._pool = []
-
 
 class PooledKernelManager(_PooledBase):
 
@@ -111,10 +107,13 @@ class PooledKernelManager(_PooledBase):
             pass
         return ret
 
+    def shutdown_all(self, *args, **kwargs):
+        self._pool = []
+        return super().shutdown_all(*args, **kwargs)
+
 
 async def _await_then_kill(aw):
-    await aw
-    await aw.result().shutdown()
+    return await (await aw).shutdown()
 
 
 class AsyncPooledKernelManager(_PooledBase, AsyncMultiKernelManager):
@@ -129,18 +128,30 @@ class AsyncPooledKernelManager(_PooledBase, AsyncMultiKernelManager):
         for i in range(self.kernel_pool_size - len(self._pool)):
             fut = super().start_kernel(self.pool_kernel_name, **self.pool_kwargs)
             # Start the work on the loop immediately, so it is ready when needed:
-            self._pool.put(asyncio.create_task(fut))
+            self._pool.append(asyncio.create_task(fut))
 
     async def start_kernel(self, kernel_name=None, **kwargs):
-        if not self._should_use_pool(kernel_name, kwargs):
-            return super().start_kernel(kernel_name, **kwargs)
+        if self._should_use_pool(kernel_name, kwargs):
+            fut = self._pool.pop(0)
+        else:
+            fut = super().start_kernel(kernel_name, **kwargs)
 
-        task = self._pool.pop(0)
         try:
             self.fill_if_needed()
         except MaximumKernelsException:
             pass
-        return await task
+        return await fut
+
+    async def shutdown_all(self, *args, **kwargs):
+        #await super().shutdown_all(*args, **kwargs)
+        for kid in self.list_kernel_ids():
+            await self.shutdown_kernel(kid)
+        # Parent doesn't correctly add all created kernels
+        for fut in self._pool:
+            kid = await fut
+            if kid in self:
+                await self.shutdown_kernel(kid)
+        self._pool = []
 
 
 __all__ = [
