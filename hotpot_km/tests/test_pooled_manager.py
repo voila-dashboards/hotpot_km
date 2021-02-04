@@ -69,6 +69,16 @@ class TestPooledKernelManagerApplied(TestKernelManager):
             for kid in kids:
                 self.assertNotIn(kid, km)
 
+    def test_decrease_pool_size(self):
+        with self._get_tcp_km() as km:
+            km.kernel_pool_size = 1
+            self.assertEqual(len(km._pool), 1)
+
+    def test_increase_pool_size(self):
+        with self._get_tcp_km() as km:
+            km.kernel_pool_size = 3
+            self.assertEqual(len(km._pool), 3)
+
 
 # Test that it works with an strict pool
 class TestPooledKernelManagerStrict(TestCase):

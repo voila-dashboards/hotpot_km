@@ -88,7 +88,7 @@ class PooledKernelManager(_PooledBase):
     def unfill_as_needed(self):
         """Kills extra kernels in pool"""
         for i in range(len(self._pool) - self.kernel_pool_size):
-            self._pool.pop(0).shutdown()
+            super().shutdown_kernel(self._pool.pop(0))
 
     def fill_if_needed(self):
         """Start kernels until pool is full"""

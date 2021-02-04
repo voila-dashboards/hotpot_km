@@ -1,0 +1,5 @@
+[run]
+omit = hotpot_km/tests/*
+
+[report]
+omit = hotpot_km/tests/*

@@ -81,6 +81,19 @@ class TestAsyncPooledKernelManagerApplied(TestAsyncKernelManager):
             for kid in kids:
                 self.assertNotIn(kid, km)
 
+    @gen_test
+    async def test_decrease_pool_size(self):
+        async with self._get_tcp_km() as km:
+            km.kernel_pool_size = 1
+            self.assertEqual(len(km._pool), 1)
+
+    @gen_test
+    async def test_increase_pool_size(self):
+        async with self._get_tcp_km() as km:
+            km.kernel_pool_size = 3
+            self.assertEqual(len(km._pool), 3)
+
+
 
 # Test that it works with an strict pool
 class TestAsyncPooledKernelManagerStrict(AsyncTestCase):
