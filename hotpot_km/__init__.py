@@ -107,6 +107,11 @@ class PooledKernelManager(_PooledBase):
             pass
         return ret
 
+    def shutdown_kernel(self, kernel_id, *args, **kwargs):
+        if kernel_id in self._pool:
+            self._pool.remove(kernel_id)
+        return super().shutdown_kernel(kernel_id, *args, **kwargs)
+
     def shutdown_all(self, *args, **kwargs):
         self._pool = []
         return super().shutdown_all(*args, **kwargs)
@@ -142,15 +147,20 @@ class AsyncPooledKernelManager(_PooledBase, AsyncMultiKernelManager):
             pass
         return await fut
 
+    async def shutdown_kernel(self, kernel_id, *args, **kwargs):
+        for i, f in enumerate(self._pool):
+            if f.done() and f.result() == kernel_id:
+                self._pool.pop(i)
+                break
+        return await super().shutdown_kernel(kernel_id, *args, **kwargs)
+
     async def shutdown_all(self, *args, **kwargs):
-        #await super().shutdown_all(*args, **kwargs)
-        for kid in self.list_kernel_ids():
-            await self.shutdown_kernel(kid)
+        await super().shutdown_all(*args, **kwargs)
         # Parent doesn't correctly add all created kernels
         for fut in self._pool:
             kid = await fut
             if kid in self:
-                await self.shutdown_kernel(kid)
+                await self.shutdown_kernel(kid, *args, **kwargs)
         self._pool = []
 
 

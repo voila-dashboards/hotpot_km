@@ -175,7 +175,7 @@ class TestAsyncKernelManager(AsyncTestCase):
         async with self._get_tcp_km() as km:
             kid = await km.start_kernel(stdout=PIPE, stderr=PIPE)
             self.assertIn(kid, km)
-            await km.shutdown_all()
+            await asyncio.ensure_future(km.shutdown_all())
             self.assertNotIn(kid, km)
             # shutdown again is okay, because we have no kernels
             await km.shutdown_all()
@@ -185,7 +185,7 @@ class TestAsyncKernelManager(AsyncTestCase):
         async with self._get_tcp_km() as km:
             await self._run_cinfo(km, 'tcp', localhost())
 
-    @gen_test
+    @gen_test(timeout=20)
     async def test_start_sequence_tcp_kernels(self):
         """Ensure that a sequence of kernel startups doesn't break anything."""
         async with self._get_tcp_km() as km:

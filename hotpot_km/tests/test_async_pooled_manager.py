@@ -1,11 +1,12 @@
 
+import asyncio
 from contextlib import asynccontextmanager
 from subprocess import PIPE
 from unittest import TestCase
 
 from jupyter_client.kernelspec import NATIVE_KERNEL_NAME
 import pytest
-from tornado.testing import gen_test
+from tornado.testing import AsyncTestCase, gen_test
 from traitlets.config.loader import Config
 
 from .. import (
@@ -14,6 +15,12 @@ from .. import (
 )
 
 from .utils import TestAsyncKernelManager
+
+async def async_shutdown_all_direct(km):
+    kids = km.list_kernel_ids()
+    futs = []
+    for kid in kids:
+        await km.shutdown_kernel(kid)
 
 # Test that it works as normal with default config
 class TestAsyncPooledKernelManagerUnused(TestAsyncKernelManager):
@@ -26,7 +33,7 @@ class TestAsyncPooledKernelManagerUnused(TestAsyncKernelManager):
         try:
             yield km
         finally:
-            await km.shutdown_all()
+            await km.shutdown_all(now=True)
 
 
 # Test that it works with an unstrict pool
@@ -42,9 +49,12 @@ class TestAsyncPooledKernelManagerApplied(TestAsyncKernelManager):
         try:
             yield km
         finally:
+            # Wait for pool, so safe to shut down
+            for fut in km._pool:
+                await fut
             await km.shutdown_all()
 
-    @gen_test
+    @gen_test(timeout=20)
     async def test_exceed_pool_size(self):
         async with self._get_tcp_km() as km:
             self.assertEqual(len(km._pool), 2)
@@ -55,8 +65,8 @@ class TestAsyncPooledKernelManagerApplied(TestAsyncKernelManager):
                 kids.append(kid)
                 self.assertEqual(len(km._pool), 2)
 
-            await km.shutdown_all()
-            for kin in kids:
+            await async_shutdown_all_direct(km)
+            for kid in kids:
                 self.assertNotIn(kid, km)
 
             # Cycle again to assure the pool survives that
@@ -68,12 +78,12 @@ class TestAsyncPooledKernelManagerApplied(TestAsyncKernelManager):
                 self.assertEqual(len(km._pool), 2)
 
             await km.shutdown_all()
-            for kin in kids:
+            for kid in kids:
                 self.assertNotIn(kid, km)
 
 
 # Test that it works with an strict pool
-class TestAsyncPooledKernelManagerStrict(TestCase):
+class TestAsyncPooledKernelManagerStrict(AsyncTestCase):
 
     @asynccontextmanager
     async def _get_tcp_km(self):
@@ -99,7 +109,7 @@ class TestAsyncPooledKernelManagerStrict(TestCase):
             self.assertIn(kid, km)
 
         finally:
-            km.shutdown_all()
+            await km.shutdown_all()
         self.assertNotIn(kid, km)
 
     @gen_test
@@ -113,9 +123,9 @@ class TestAsyncPooledKernelManagerStrict(TestCase):
         try:
             with self.assertRaisesRegex(ValueError, 'Cannot start kernel with name'):
                 kid = await km.start_kernel(kernel_name='foo', stdout=PIPE, stderr=PIPE)
-            self.assertEqual(len(km), 1)
+            self.assertEqual(len(km._pool), 1)
         finally:
-            km.shutdown_all()
+            await km.shutdown_all()
 
     @gen_test
     async def test_strict_kwargs_correct(self):
@@ -129,7 +139,7 @@ class TestAsyncPooledKernelManagerStrict(TestCase):
             kid = await km.start_kernel(stdout=PIPE, stderr=PIPE)
             self.assertIn(kid, km)
         finally:
-            km.shutdown_all()
+            await km.shutdown_all()
         self.assertNotIn(kid, km)
 
     @gen_test
@@ -143,9 +153,9 @@ class TestAsyncPooledKernelManagerStrict(TestCase):
         try:
             with self.assertRaisesRegex(ValueError, 'Cannot start kernel with kwargs'):
                 kid = await km.start_kernel()
-            self.assertEqual(len(km), 1)
+            self.assertEqual(len(km._pool), 1)
         finally:
-            km.shutdown_all()
+            await km.shutdown_all()
 
     @gen_test
     async def test_both_strict_correct(self):
@@ -161,5 +171,5 @@ class TestAsyncPooledKernelManagerStrict(TestCase):
             kid = await km.start_kernel(kernel_name=NATIVE_KERNEL_NAME, stdout=PIPE, stderr=PIPE)
             self.assertIn(kid, km)
         finally:
-            km.shutdown_all()
+            await km.shutdown_all()
         self.assertNotIn(kid, km)

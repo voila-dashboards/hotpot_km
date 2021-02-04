@@ -14,6 +14,11 @@ from .. import (
 
 from .utils import TestKernelManager
 
+def shutdown_all_direct(km):
+    kids = km.list_kernel_ids()
+    for kid in kids:
+        km.shutdown_kernel(kid)
+
 # Test that it works as normal with default config
 class TestPooledKernelManagerUnused(TestKernelManager):
     __test__ = True
@@ -53,8 +58,8 @@ class TestPooledKernelManagerApplied(TestKernelManager):
                 kids.append(kid)
                 self.assertEqual(len(km._pool), 2)
 
-            km.shutdown_all()
-            for kin in kids:
+            shutdown_all_direct(km)
+            for kid in kids:
                 self.assertNotIn(kid, km)
 
             # Cycle again to assure the pool survives that
@@ -66,7 +71,7 @@ class TestPooledKernelManagerApplied(TestKernelManager):
                 self.assertEqual(len(km._pool), 2)
 
             km.shutdown_all()
-            for kin in kids:
+            for kid in kids:
                 self.assertNotIn(kid, km)
 
 

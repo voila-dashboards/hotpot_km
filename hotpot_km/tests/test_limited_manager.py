@@ -58,7 +58,7 @@ class TestLimitedKernelManagerApplied(TestKernelManager):
             kids.append(kid)
 
             km.shutdown_all()
-            for kin in kids:
+            for kid in kids:
                 self.assertNotIn(kid, km)
 
     def test_breach_max(self):
@@ -82,5 +82,5 @@ class TestLimitedKernelManagerApplied(TestKernelManager):
             kids.append(kid)
 
             km.shutdown_all()
-            for kin in kids:
+            for kid in kids:
                 self.assertNotIn(kid, km)

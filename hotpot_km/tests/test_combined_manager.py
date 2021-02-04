@@ -56,7 +56,7 @@ class TestCombinedManagerApplied(TestKernelManager):
             self.assertEqual(len(km._pool), 0)
 
             km.shutdown_all()
-            for kin in kids:
+            for kid in kids:
                 self.assertNotIn(kid, km)
 
             # Cycle again to assure the pool survives that
@@ -69,7 +69,7 @@ class TestCombinedManagerApplied(TestKernelManager):
             self.assertEqual(len(km._pool), 0)
 
             km.shutdown_all()
-            for kin in kids:
+            for kid in kids:
                 self.assertNotIn(kid, km)
 
     def test_breach_max(self):
@@ -93,7 +93,7 @@ class TestCombinedManagerApplied(TestKernelManager):
             kids.append(kid)
 
             km.shutdown_all()
-            for kin in kids:
+            for kid in kids:
                 self.assertNotIn(kid, km)
             # shutdown again is okay, because we have no kernels
             km.shutdown_all()
