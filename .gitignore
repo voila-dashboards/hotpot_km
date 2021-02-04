@@ -123,3 +123,6 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# Test temp files that might get left behind:
+kernel-*.json

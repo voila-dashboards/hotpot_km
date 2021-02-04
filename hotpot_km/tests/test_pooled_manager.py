@@ -12,12 +12,7 @@ from .. import (
     MaximumKernelsException,
 )
 
-from .utils import TestKernelManager
-
-def shutdown_all_direct(km):
-    kids = km.list_kernel_ids()
-    for kid in kids:
-        km.shutdown_kernel(kid)
+from .utils import shutdown_all_direct, TestKernelManager
 
 # Test that it works as normal with default config
 class TestPooledKernelManagerUnused(TestKernelManager):

@@ -1,20 +1,22 @@
 
-from contextlib import contextmanager
+from contextlib import asynccontextmanager
+from pytest import mark
 from subprocess import PIPE
 from traitlets.config.loader import Config
+from tornado.testing import gen_test
 
 from .. import MaximumKernelsException
 from ..mapping import LimitedPooledMappingKernelManager
 
 
-from .utils import TestKernelManager
+from .utils import shutdown_all_direct, TestAsyncKernelManager
 
 # Test that it works as normal with default config
-class TestMappingKernelManager(TestKernelManager):
+class TestMappingKernelManagerUnused(TestAsyncKernelManager):
     __test__ = True
 
-    @contextmanager
-    def _get_tcp_km(self):
+    @asynccontextmanager
+    async def _get_tcp_km(self):
         c = Config()
         km = LimitedPooledMappingKernelManager(config=c)
         try:
@@ -22,13 +24,20 @@ class TestMappingKernelManager(TestKernelManager):
         finally:
             km.shutdown_all()
 
+    # Mapping manager doesn't handle this:
+    @mark.skip()
+    @gen_test
+    async def test_tcp_lifecycle_with_kernel_id(self):
+        pass
+
+
 
 # Test that it works with a max that is larger than pool size
-class TestMappingKernelManagerApplied(TestKernelManager):
+class TestMappingKernelManagerApplied(TestAsyncKernelManager):
     __test__ = True
 
-    @contextmanager
-    def _get_tcp_km(self):
+    @asynccontextmanager
+    async def _get_tcp_km(self):
         c = Config()
         c.LimitedKernelManager.max_kernels = 4
         c.LimitedPooledMappingKernelManager.kernel_pool_size = 2
@@ -39,54 +48,60 @@ class TestMappingKernelManagerApplied(TestKernelManager):
         finally:
             km.shutdown_all()
 
-    def test_exceed_pool_size(self):
-        with self._get_tcp_km() as km:
+    # Mapping manager doesn't handle this:
+    @mark.skip()
+    @gen_test
+    async def test_tcp_lifecycle_with_kernel_id(self):
+        pass
+
+    @gen_test
+    async def test_exceed_pool_size(self):
+        async with self._get_tcp_km() as km:
             self.assertEqual(len(km._pool), 2)
             kids = []
             for i in range(4):
-                kid = km.start_kernel(stdout=PIPE, stderr=PIPE)
+                kid = await km.start_kernel(stdout=PIPE, stderr=PIPE)
                 self.assertIn(kid, km)
                 kids.append(kid)
+                self.assertEqual(len(km._pool), 2)
 
-            self.assertEqual(len(km._pool), 0)
-
-            km.shutdown_all()
-            for kin in kids:
+            shutdown_all_direct(km)
+            for kid in kids:
                 self.assertNotIn(kid, km)
 
             # Cycle again to assure the pool survives that
             kids = []
             for i in range(4):
-                kid = km.start_kernel(stdout=PIPE, stderr=PIPE)
+                kid = await km.start_kernel(stdout=PIPE, stderr=PIPE)
                 self.assertIn(kid, km)
                 kids.append(kid)
-
-            self.assertEqual(len(km._pool), 0)
+                self.assertEqual(len(km._pool), 2)
 
             km.shutdown_all()
-            for kin in kids:
+            for kid in kids:
                 self.assertNotIn(kid, km)
 
-    def test_breach_max(self):
-        with self._get_tcp_km() as km:
+    @gen_test
+    async def test_breach_max(self):
+        async with self._get_tcp_km() as km:
             kids = []
             for i in range(4):
-                kid = km.start_kernel(stdout=PIPE, stderr=PIPE)
+                kid = await km.start_kernel(stdout=PIPE, stderr=PIPE)
                 self.assertIn(kid, km)
                 kids.append(kid)
 
             with self.assertRaises(MaximumKernelsException):
-                km.start_kernel(stdout=PIPE, stderr=PIPE)
+                await km.start_kernel(stdout=PIPE, stderr=PIPE)
 
             # Remove and add one to make sure we correctly recovered
             km.shutdown_kernel(kid)
             self.assertNotIn(kid, km)
             kids.pop()
 
-            kid = km.start_kernel(stdout=PIPE, stderr=PIPE)
+            kid = await km.start_kernel(stdout=PIPE, stderr=PIPE)
             self.assertIn(kid, km)
             kids.append(kid)
 
             km.shutdown_all()
-            for kin in kids:
+            for kid in kids:
                 self.assertNotIn(kid, km)

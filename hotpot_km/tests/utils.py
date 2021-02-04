@@ -9,10 +9,16 @@ from tornado.testing import AsyncTestCase, gen_test
 from unittest import TestCase
 
 from jupyter_client import KernelManager, AsyncKernelManager
+from jupyter_client.ioloop import IOLoopKernelManager
 from jupyter_client.tests.utils import skip_win32
 from jupyter_client.localinterfaces import localhost
+from jupyter_server.utils import ensure_async
 
-TIMEOUT = 30
+
+def shutdown_all_direct(km):
+    kids = km.list_kernel_ids()
+    for kid in kids:
+        km.shutdown_kernel(kid)
 
 
 class TestKernelManager(TestCase):
@@ -131,16 +137,16 @@ class TestAsyncKernelManager(AsyncTestCase):
             self.assertTrue(kid == test_kid)
         else:
             kid = await km.start_kernel(stdout=PIPE, stderr=PIPE)
-        self.assertTrue(await km.is_alive(kid))
+        self.assertTrue(await ensure_async(km.is_alive(kid)))
         self.assertTrue(kid in km)
         self.assertTrue(kid in km.list_kernel_ids())
         await km.restart_kernel(kid, now=True)
-        self.assertTrue(await km.is_alive(kid))
+        self.assertTrue(await ensure_async(km.is_alive(kid)))
         self.assertTrue(kid in km.list_kernel_ids())
-        await km.interrupt_kernel(kid)
+        await ensure_async(km.interrupt_kernel(kid))
         k = km.get_kernel(kid)
-        self.assertTrue(isinstance(k, AsyncKernelManager))
-        await km.shutdown_kernel(kid, now=True)
+        self.assertIsInstance(k, (AsyncKernelManager, IOLoopKernelManager))
+        await ensure_async(km.shutdown_kernel(kid, now=True))
         self.assertNotIn(kid, km)
 
     async def _run_cinfo(self, km, transport, ip):
@@ -159,7 +165,7 @@ class TestAsyncKernelManager(AsyncTestCase):
         self.assertTrue('hb_port' in cinfo)
         stream = km.connect_hb(kid)
         stream.close()
-        await km.shutdown_kernel(kid, now=True)
+        await ensure_async(km.shutdown_kernel(kid, now=True))
         self.assertNotIn(kid, km)
 
     @gen_test
@@ -170,15 +176,15 @@ class TestAsyncKernelManager(AsyncTestCase):
     async def test_tcp_lifecycle_with_kernel_id(self):
         await self.raw_tcp_lifecycle(test_kid=str(uuid.uuid4()))
 
-    @gen_test
+    @gen_test(timeout=20)
     async def test_shutdown_all(self):
         async with self._get_tcp_km() as km:
             kid = await km.start_kernel(stdout=PIPE, stderr=PIPE)
             self.assertIn(kid, km)
-            await asyncio.ensure_future(km.shutdown_all())
+            await ensure_async(km.shutdown_all())
             self.assertNotIn(kid, km)
             # shutdown again is okay, because we have no kernels
-            await km.shutdown_all()
+            await ensure_async(km.shutdown_all())
 
     @gen_test
     async def test_tcp_cinfo(self):

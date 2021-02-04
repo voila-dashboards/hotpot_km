@@ -93,13 +93,13 @@ class PooledKernelManager(_PooledBase):
     def fill_if_needed(self):
         """Start kernels until pool is full"""
         for i in range(self.kernel_pool_size - len(self._pool)):
-            self._pool.append(super().start_kernel(self.pool_kernel_name, **self.pool_kwargs))
+            self._pool.append(super().start_kernel(kernel_name=self.pool_kernel_name, **self.pool_kwargs))
 
     def start_kernel(self, kernel_name=None, **kwargs):
         if self._should_use_pool(kernel_name, kwargs):
             ret = self._pool.pop(0)
         else:
-            ret = super().start_kernel(kernel_name, **kwargs)
+            ret = super().start_kernel(kernel_name=kernel_name, **kwargs)
 
         try:
             self.fill_if_needed()
@@ -131,7 +131,7 @@ class AsyncPooledKernelManager(_PooledBase, AsyncMultiKernelManager):
     def fill_if_needed(self):
         """Start kernels until pool is full"""
         for i in range(self.kernel_pool_size - len(self._pool)):
-            fut = super().start_kernel(self.pool_kernel_name, **self.pool_kwargs)
+            fut = super().start_kernel(kernel_name=self.pool_kernel_name, **self.pool_kwargs)
             # Start the work on the loop immediately, so it is ready when needed:
             self._pool.append(asyncio.create_task(fut))
 
@@ -139,7 +139,7 @@ class AsyncPooledKernelManager(_PooledBase, AsyncMultiKernelManager):
         if self._should_use_pool(kernel_name, kwargs):
             fut = self._pool.pop(0)
         else:
-            fut = super().start_kernel(kernel_name, **kwargs)
+            fut = super().start_kernel(kernel_name=kernel_name, **kwargs)
 
         try:
             self.fill_if_needed()
@@ -156,7 +156,7 @@ class AsyncPooledKernelManager(_PooledBase, AsyncMultiKernelManager):
 
     async def shutdown_all(self, *args, **kwargs):
         await super().shutdown_all(*args, **kwargs)
-        # Parent doesn't correctly add all created kernels
+        # Parent doesn't correctly add all created kernels until they have completed startup:
         for fut in self._pool:
             kid = await fut
             if kid in self:
