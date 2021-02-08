@@ -21,6 +21,13 @@ def shutdown_all_direct(km):
         km.shutdown_kernel(kid)
 
 
+async def async_shutdown_all_direct(km):
+    kids = km.list_kernel_ids()
+    futs = []
+    for kid in kids:
+        await km.shutdown_kernel(kid)
+
+
 class TestKernelManager(TestCase):
     # Prevent the base class from being collected directly
     __test__ = False

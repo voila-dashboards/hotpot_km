@@ -27,6 +27,7 @@ class LimitedKernelManager(MultiKernelManager):
 
     def pre_start_kernel(self, kernel_name, kwargs):
         if len(self) >= self.max_kernels > 0:
+            self.log.debug("Refusing to start kernel, maximum number reached.")
             raise MaximumKernelsException("No kernels are available.")
         return super().pre_start_kernel(kernel_name, kwargs)
 
@@ -136,29 +137,41 @@ class AsyncPooledKernelManager(_PooledBase, AsyncMultiKernelManager):
             self._pool.append(asyncio.create_task(fut))
 
     async def start_kernel(self, kernel_name=None, **kwargs):
-        if self._should_use_pool(kernel_name, kwargs):
+        fut = None
+        while fut is None and self._should_use_pool(kernel_name, kwargs):
             fut = self._pool.pop(0)
-        else:
+            try:
+                await fut
+            except MaximumKernelsException:
+                fut = None
+        if fut is None:
             fut = super().start_kernel(kernel_name=kernel_name, **kwargs)
 
-        try:
-            self.fill_if_needed()
-        except MaximumKernelsException:
-            pass
+        self.fill_if_needed()
         return await fut
 
     async def shutdown_kernel(self, kernel_id, *args, **kwargs):
         for i, f in enumerate(self._pool):
-            if f.done() and f.result() == kernel_id:
+            try:
+                if f.done() and f.result() == kernel_id:
+                    self._pool.pop(i)
+                    break
+            except Exception as e:
+                if not isinstance(e, MaximumKernelsException):
+                    self.log.exception("Kernel failed starting up")
                 self._pool.pop(i)
-                break
         return await super().shutdown_kernel(kernel_id, *args, **kwargs)
 
     async def shutdown_all(self, *args, **kwargs):
         await super().shutdown_all(*args, **kwargs)
         # Parent doesn't correctly add all created kernels until they have completed startup:
         for fut in self._pool:
-            kid = await fut
+            try:
+                kid = await fut
+            except Exception as e:
+                if not isinstance(e, MaximumKernelsException):
+                    self.log.exception("Kernel failed starting up")
+                continue
             if kid in self:
                 await self.shutdown_kernel(kid, *args, **kwargs)
         self._pool = []

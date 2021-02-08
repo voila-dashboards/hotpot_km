@@ -14,13 +14,7 @@ from .. import (
     MaximumKernelsException,
 )
 
-from .utils import TestAsyncKernelManager
-
-async def async_shutdown_all_direct(km):
-    kids = km.list_kernel_ids()
-    futs = []
-    for kid in kids:
-        await km.shutdown_kernel(kid)
+from .utils import async_shutdown_all_direct, TestAsyncKernelManager
 
 # Test that it works as normal with default config
 class TestAsyncPooledKernelManagerUnused(TestAsyncKernelManager):
