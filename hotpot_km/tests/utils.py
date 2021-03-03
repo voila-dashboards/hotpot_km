@@ -15,12 +15,6 @@ from jupyter_client.localinterfaces import localhost
 from jupyter_server.utils import ensure_async
 
 
-def shutdown_all_direct(km):
-    kids = km.list_kernel_ids()
-    for kid in kids:
-        km.shutdown_kernel(kid)
-
-
 async def async_shutdown_all_direct(km):
     kids = km.list_kernel_ids()
     futs = []

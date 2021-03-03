@@ -7,7 +7,8 @@
 
 from ._version import __version__
 
-from .base import MaximumKernelsException, PooledKernelManager, AsyncPooledKernelManager
+from .limited import MaximumKernelsException, LimitedKernelManager
+from .pooled import PooledKernelManager
 
 __all__ = [
     '__version__',
@@ -17,13 +18,7 @@ __all__ = [
 ]
 
 try:
-    from .mapping import LimitedPooledMappingKernelManager
+    from .mapping import PooledMappingKernelManager
     __all__.append('PooledMappingKernelManager')
-except ImportError:
-    pass
-
-try:
-    from .async_mapping import AsyncLimitedPooledMappingKernelManager
-    __all__.append('AsyncPooledMappingKernelManager')
 except ImportError:
     pass
