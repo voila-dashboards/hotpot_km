@@ -141,6 +141,7 @@ class ExecClient(LoggingConfigurable):
     def __init__(
             self,
             km: KernelManager = None,
+            _store_outputs: bool = False, # for testing purposes
             **kw) -> None:
         """Initializes the execution manager.
 
@@ -153,6 +154,8 @@ class ExecClient(LoggingConfigurable):
         super().__init__(**kw)
         self.km: KernelManager = km
         self.kc: t.Optional[KernelClient] = None
+        self._store_outputs = _store_outputs
+        self._outputs = []
 
     async def _cleanup_kernel(self) -> None:
         assert self.km is not None
@@ -194,7 +197,7 @@ class ExecClient(LoggingConfigurable):
         return self.kc
 
     @asynccontextmanager
-    async def setup_kernel(self, **kwargs) -> t.AsyncGenerator:
+    async def setup_kernel(self) -> t.AsyncGenerator:
         """
         Context manager for setting up the kernel to execute a notebook.
 
@@ -239,7 +242,7 @@ class ExecClient(LoggingConfigurable):
     async def execute(
             self,
             source: str,
-            **kwargs) -> None:
+            **kwargs) -> t.Optional[dict]:
         """
         Executes code. Requires that a setup_kernel context is held.
 
@@ -256,6 +259,10 @@ class ExecClient(LoggingConfigurable):
             ``reset_kc`` if True, the kernel client will be reset and a new one
             will be created (default: False).
 
+        Returns
+        -------
+        The execute reply message, or None if skipped bc of empty code.
+
         Raises
         ------
         CellExecutionError
@@ -266,7 +273,7 @@ class ExecClient(LoggingConfigurable):
         assert self.kc is not None
         if not source.strip():
             self.log.debug("Skipping empty code")
-            return {}
+            return None
 
         self.log.debug("Executing code")
 
@@ -305,6 +312,7 @@ class ExecClient(LoggingConfigurable):
                 raise
 
         self._check_raise_for_error(exec_reply)
+        return exec_reply
 
     async def _poll_for_reply(
             self,
@@ -322,8 +330,6 @@ class ExecClient(LoggingConfigurable):
             try:
                 msg = await ensure_async(self.kc.shell_channel.get_msg(timeout=new_timeout))
                 if msg['parent_header'].get('msg_id') == msg_id:
-                    if self.record_timing:
-                        cell['metadata']['execution']['shell.execute_reply'] = timestamp()
                     try:
                         await asyncio.wait_for(task_poll_output_msg, self.iopub_timeout)
                     except (asyncio.TimeoutError, Empty):
@@ -452,4 +458,23 @@ class ExecClient(LoggingConfigurable):
         if msg_type == 'status':
             if content['execution_state'] == 'idle':
                 return True
+        elif (
+            self._store_outputs and
+            msg_type not in ['clear_output', 'comm', 'execute_input', 'update_display_data']
+        ):
+            # Assign output as our processed "result"
+            self.output(self._outputs, msg)
         return False
+
+    def output(
+            self,
+            outs: t.List,
+            msg: t.Dict) -> t.Optional[t.List]:
+
+        try:
+            out = output_from_msg(msg)
+        except ValueError:
+            self.log.error("unhandled iopub msg: " + msg['msg_type'])
+            return
+
+        outs.append(out)

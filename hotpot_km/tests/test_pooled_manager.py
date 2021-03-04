@@ -116,18 +116,6 @@ class TestPooledKernelManagerApplied(TestAsyncKernelManager):
 # Test that it works with an strict pool
 class TestPooledKernelManagerStrict(AsyncTestCase):
 
-    @asynccontextmanager
-    async def _get_tcp_km(self):
-        c = Config()
-        c.PooledKernelManager.kernel_pools = {NATIVE_KERNEL_NAME: 2}
-        c.PooledKernelManager.strict_pool_names = True
-        c.PooledKernelManager.pool_kwargs = {NATIVE_KERNEL_NAME: dict(stdout=PIPE, stderr=PIPE)}
-        km = PooledKernelManager(config=c)
-        try:
-            yield km
-        finally:
-            await km.shutdown_all()
-
     @gen_test
     async def test_strict_name_correct(self):
         c = Config()

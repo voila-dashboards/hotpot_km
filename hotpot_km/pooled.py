@@ -88,9 +88,6 @@ class PooledKernelManager(LimitedKernelManager, AsyncMultiKernelManager):
         ):
             raise ValueError("Cannot start kernel with kwargs %r" % (kwargs,))
 
-        if kwargs != self.pool_kwargs.get(kernel_name, {}):  # TODO: should do deep equals
-            return False
-
         if only_if_available:
             return len(self._pools.get(kernel_name, ())) > 0
         else:
@@ -194,15 +191,15 @@ class PooledKernelManager(LimitedKernelManager, AsyncMultiKernelManager):
                     if 'cwd' in kwargs:
                         cwd = kwargs.pop('cwd')
                         code = python_update_cwd_code.format(cwd=cwd)
-                        self.log.debug("Updating preheated kernel CWD using: \n%s", code)
+                        self.log.debug("Updating preheated kernel CWD using")
                         await client.execute(code)
                     if 'env' in kwargs:
                         env = kwargs.pop('env')
                         code = python_update_env_code.format(env=env)
-                        self.log.debug("Updating preheated kernel env vars using: \n%s", code)
+                        self.log.debug("Updating preheated kernel env vars")
                         await client.execute(code)
         if kwargs:
-            self.log.debug("Unknown kwargs: %s", kwargs)
+            self.log.debug("Unknown kwargs: %s", list(kwargs.keys()))
 
         return await kernel_id_future
 
@@ -212,9 +209,11 @@ class PooledKernelManager(LimitedKernelManager, AsyncMultiKernelManager):
         extension = None
         language = None
 
+        kernel = self.get_kernel(kernel_id)
+
         try:
             language_to_extensions = {'python': 'py'}
-            language = self.kernel_spec_manager.get_all_specs()[kernel_name]['spec']['language']
+            language = kernel.kernel_spec_manager.get_all_specs()[kernel_name]['spec']['language']
             extension = language_to_extensions[language]
         except Exception:
             pass
@@ -227,7 +226,6 @@ class PooledKernelManager(LimitedKernelManager, AsyncMultiKernelManager):
 
         self.log.info("Initializing kernel: %s", kernel_name)
 
-        kernel = self.get_kernel(kernel_id)
         client = ExecClient(kernel)
 
         from jupyter_core.paths import jupyter_config_path
@@ -236,7 +234,6 @@ class PooledKernelManager(LimitedKernelManager, AsyncMultiKernelManager):
             if extension:
                 for base_path in map(Path, jupyter_config_path()):
                     path = base_path / f'voila_kernel_pool_init_{kernel_name}.{extension}'
-                    self.log.debug('Checking %s for initializing kernel', path)
                     if path.exists():
                         with open(path) as f:
                             self.log.debug('Running %s for initializing kernel', path)
