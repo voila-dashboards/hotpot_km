@@ -10,7 +10,7 @@ requires = [
     "async_generator",
     "jupyter_client",
     "nbclient",
-    "nbformat"
+    "nbformat",
     "traitlets",
 ]
 
