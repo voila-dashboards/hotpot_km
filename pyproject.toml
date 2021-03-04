@@ -7,6 +7,7 @@ module = "hotpot_km"
 author = "Vidar Tonaas Fauske"
 author-email = "vidartf@gmail.com"
 requires = [
+    "async_generator",
     "jupyter_client",
     "traitlets",
 ]
