@@ -9,6 +9,8 @@ author-email = "vidartf@gmail.com"
 requires = [
     "async_generator",
     "jupyter_client",
+    "nbclient",
+    "nbformat"
     "traitlets",
 ]
 
