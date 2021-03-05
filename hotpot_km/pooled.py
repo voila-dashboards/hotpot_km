@@ -12,6 +12,9 @@ import asyncio
 from jupyter_client.multikernelmanager import AsyncMultiKernelManager
 
 from traitlets import Bool, Dict, Float, Integer, List, Unicode, observe
+from nbclient.util import run_sync, ensure_async
+
+
 
 from .client_helper import ExecClient
 from .limited import LimitedKernelManager, MaximumKernelsException
@@ -28,6 +31,16 @@ async def _wait_before(delay, aw):
 
 async def _await_then_kill(km, aw_id):
     return await km.get_kernel(await aw_id).shutdown_kernel()
+
+
+def _ensure_event_loop():
+    try:
+        loop = asyncio.get_event_loop()
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+    return loop
+
 
 class PooledKernelManager(LimitedKernelManager, AsyncMultiKernelManager):
     kernel_pools = Dict(Integer(0), config=True,
@@ -58,12 +71,21 @@ class PooledKernelManager(LimitedKernelManager, AsyncMultiKernelManager):
         help='List of Python modules/packages to import'
     )
 
+    wait_at_startup = Bool(False, config=True,
+        help="Wait till all kernels pools are filled at startup"
+    )
+
     _pools = Dict()
 
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fill_if_needed(delay=0)
+        awaitable = self.fill_if_needed(delay=0)
+        loop = _ensure_event_loop()
+        if self.wait_at_startup:
+            loop.run_until_complete(awaitable)
+        else:
+            loop.create_task(awaitable)
         self.observe(self._pool_size_changed, 'kernel_pools')
         self._discarded = []
 
@@ -99,9 +121,10 @@ class PooledKernelManager(LimitedKernelManager, AsyncMultiKernelManager):
                 task = asyncio.create_task(_await_then_kill(self, pool.pop(0)))
                 self._discarded.append(task)
 
-    def fill_if_needed(self, delay=None):
+    async def fill_if_needed(self, delay=None):
         """Start kernels until pool is full"""
         delay = delay if delay is not None else self.fill_delay
+        all_tasks = []
         for name, target in self.kernel_pools.items():
             pool = self._pools.get(name, [])
             self._pools[name] = pool
@@ -113,7 +136,9 @@ class PooledKernelManager(LimitedKernelManager, AsyncMultiKernelManager):
                     delay,
                     self._initialize(name, fut)
                 ))
+                all_tasks.append(task)
                 pool.append(task)
+        await asyncio.gather(*all_tasks)
 
     async def _pop_pooled_kernel(self, kernel_name, kwargs):
         fut = self._pools[kernel_name].pop(0)
