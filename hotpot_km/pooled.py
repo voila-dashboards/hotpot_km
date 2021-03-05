@@ -71,7 +71,7 @@ class PooledKernelManager(LimitedKernelManager, AsyncMultiKernelManager):
         help='List of Python modules/packages to import'
     )
 
-    wait_at_startup = Bool(False, config=True,
+    _wait_at_startup = Bool(False, config=True,
         help="Wait till all kernels pools are filled at startup"
     )
 
@@ -80,20 +80,10 @@ class PooledKernelManager(LimitedKernelManager, AsyncMultiKernelManager):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        async def inside_running_event_loop():
-            self.fill_if_needed(delay=0)
-            if self.wait_at_startup:
-                await self.wait_for_pool()
+        self.fill_if_needed(delay=0)
         loop = _ensure_event_loop()
-        # fill_if_needed uses create_task, so we need to call it from
-        # a running event loop
-        try:
-            loop.run_until_complete(inside_running_event_loop())
-        except RuntimeError:
-            # but it the event loop is already running, we can just call it
-            self.fill_if_needed(delay=0)
-            # but this requires the nest_asyncio trick of run_sync
-            run_sync( self.wait_for_pool())
+        if self._wait_at_startup:
+            loop.run_until_complete(self.wait_for_pool())
         self.observe(self._pool_size_changed, 'kernel_pools')
         self._discarded = []
 
@@ -132,6 +122,7 @@ class PooledKernelManager(LimitedKernelManager, AsyncMultiKernelManager):
     def fill_if_needed(self, delay=None):
         """Start kernels until pool is full"""
         delay = delay if delay is not None else self.fill_delay
+        loop = _ensure_event_loop()
         for name, target in self.kernel_pools.items():
             pool = self._pools.get(name, [])
             self._pools[name] = pool
@@ -139,7 +130,7 @@ class PooledKernelManager(LimitedKernelManager, AsyncMultiKernelManager):
                 kw = self.pool_kwargs.get(name, {})
                 fut = super().start_kernel(kernel_name=name, **kw)
                 # Start the work on the loop immediately, so it is ready when needed:
-                task = asyncio.create_task(_wait_before(
+                task = loop.create_task(_wait_before(
                     delay,
                     self._initialize(name, fut)
                 ))
