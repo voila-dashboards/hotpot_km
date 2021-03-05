@@ -81,8 +81,8 @@ class PooledKernelManager(LimitedKernelManager, AsyncMultiKernelManager):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fill_if_needed(delay=0)
-        loop = _ensure_event_loop()
         if self._wait_at_startup:
+            loop = _ensure_event_loop()
             loop.run_until_complete(self.wait_for_pool())
         self.observe(self._pool_size_changed, 'kernel_pools')
         self._discarded = []
