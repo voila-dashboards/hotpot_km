@@ -30,10 +30,6 @@ async def _await_then_kill(km, aw_id):
     return await km.get_kernel(await aw_id).shutdown_kernel()
 
 class PooledKernelManager(LimitedKernelManager, AsyncMultiKernelManager):
-    max_kernels = Integer(0, config=True,
-        help="The maximum number of concurrent kernels",
-    )
-
     kernel_pools = Dict(Integer(0), config=True,
         help="Mapping from kernel name to the number of started kernels to keep on standby",
     )
