@@ -5,6 +5,8 @@ import sys
 
 import pytest
 
+# Mostly for CI, but useful for everyone
+os.environ['ASYNC_TEST_TIMEOUT'] = 10
 
 if os.name == 'nt' and sys.version_info >= (3, 7):
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
