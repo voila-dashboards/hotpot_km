@@ -23,7 +23,6 @@ import typing as t
 from traitlets.config.configurable import LoggingConfigurable
 from traitlets import List, Unicode, Bool, Enum, Any, Type, Dict, Integer, default
 
-from nbformat import NotebookNode
 from nbformat.v4 import output_from_msg
 from jupyter_client import KernelManager
 from jupyter_client.client import KernelClient
