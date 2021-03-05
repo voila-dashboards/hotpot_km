@@ -148,18 +148,17 @@ class PooledKernelManager(LimitedKernelManager, AsyncMultiKernelManager):
         if kernel_name is None:
             kernel_name = self.default_kernel_name
         self.log.debug("Starting kernel: %s", kernel_name)
-        fut = None
-        while fut is None and self._should_use_pool(kernel_name, kwargs):
-            fut = asyncio.create_task(self._pop_pooled_kernel(kernel_name, kwargs))
+        kernel_id = None
+        while kernel_id is None and self._should_use_pool(kernel_name, kwargs):
             try:
-                await fut
+                kernel_id = await self._pop_pooled_kernel(kernel_name, kwargs)
             except MaximumKernelsException:
-                fut = None
-        if fut is None:
-            fut = super().start_kernel(kernel_name=kernel_name, **kwargs)
+                pass
+        if kernel_id is None:
+            kernel_id = await super().start_kernel(kernel_name=kernel_name, **kwargs)
 
-        self.fill_if_needed()
-        return await fut
+        asyncio.create_task(self.fill_if_needed())
+        return kernel_id
 
     async def shutdown_kernel(self, kernel_id, *args, **kwargs):
         for pool in self._pools.values():
