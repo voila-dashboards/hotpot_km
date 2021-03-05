@@ -253,7 +253,7 @@ class PooledKernelManager(LimitedKernelManager, AsyncMultiKernelManager):
         async with client.setup_kernel():
             if extension:
                 for base_path in map(Path, jupyter_config_path()):
-                    path = base_path / f'voila_kernel_pool_init_{kernel_name}.{extension}'
+                    path = base_path / f'kernel_pool_init_{kernel_name}.{extension}'
                     if path.exists():
                         with open(path) as f:
                             self.log.debug('Running %s for initializing kernel', path)
