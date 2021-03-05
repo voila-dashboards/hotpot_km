@@ -112,11 +112,12 @@ class PooledKernelManager(LimitedKernelManager, AsyncMultiKernelManager):
     def unfill_as_needed(self):
         """Kills extra kernels in pool"""
         tasks = []
+        loop = _ensure_event_loop()
         for name, target in self.kernel_pools.items():
             pool = self._pools.get(name, [])
             self._pools[name] = pool
             for i in range(len(pool) - target):
-                task = asyncio.create_task(_await_then_kill(self, pool.pop(0)))
+                task = loop.create_task(_await_then_kill(self, pool.pop(0)))
                 self._discarded.append(task)
 
     def fill_if_needed(self, delay=None):
