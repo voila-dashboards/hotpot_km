@@ -73,7 +73,7 @@ class TestUpdatePooled(AsyncTestCase):
             c.PooledKernelManager.strict_pool_names = True
             km = PooledKernelManager(config=c)
 
-            # create a lcoal py module in cwd to test import
+            # create a local py module in cwd to test import
             foo_mod = Path(tmp_dir) / "foo_module.py"
             foo_mod.write_text("foo = 1")
 

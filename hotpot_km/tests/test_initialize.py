@@ -110,8 +110,8 @@ class TestInitializePooled(AsyncTestCase):
 
             with mock.patch("jupyter_core.paths.jupyter_config_path") as jcp:
                 jcp.return_value = [tmp_dir]
-                # create a lcoal py module in cwd to test import
-                foo_mod = Path(tmp_dir) / f"voila_kernel_pool_init_{NATIVE_KERNEL_NAME}.py"
+                # create a local py module in cwd to test import
+                foo_mod = Path(tmp_dir) / f"kernel_pool_init_{NATIVE_KERNEL_NAME}.py"
                 foo_mod.write_text("foo = 1")
 
                 try:
