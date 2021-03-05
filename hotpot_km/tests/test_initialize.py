@@ -1,7 +1,7 @@
 
 import asyncio
 from contextlib import asynccontextmanager
-import mock
+from unittest import mock
 from pathlib import Path
 from subprocess import PIPE
 from tempfile import TemporaryDirectory
@@ -127,4 +127,3 @@ class TestInitializePooled(AsyncTestCase):
                     }])
                 finally:
                     await km.shutdown_all()
-
