@@ -32,6 +32,6 @@ jobs:
         pip install --upgrade git+https://github.com/jupyter/jupyter_client.git@987f3e1de21e34d7f6f8b3225a6b044e1bdb0152
         flit install
     - name: Run the tests
-      run: py.test --cov hotpot_km -v
+      run: py.test --cov hotpot_km -v -s --log-cli-level=DEBUG
     - name: Code coverage
       run: codecov
