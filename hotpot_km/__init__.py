@@ -14,7 +14,7 @@ __all__ = [
     '__version__',
     'MaximumKernelsException',
     'PooledKernelManager',
-    'AsyncPooledKernelManager',
+    'LimitedKernelManager',
 ]
 
 try:
