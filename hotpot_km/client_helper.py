@@ -224,11 +224,12 @@ class ExecClient(LoggingConfigurable):
             # RuntimeError: Raised when add_signal_handler is called outside the main thread
             pass
 
-        if not self.kc:
-            await self.start_new_kernel_client()
-        msg_id = await ensure_async(self.kc.kernel_info())
-        await self.wait_for_reply(msg_id)
         try:
+            if self.kc:
+                msg_id = await ensure_async(self.kc.kernel_info())
+                await self.wait_for_reply(msg_id)
+            else:
+                await self.start_new_kernel_client()
             yield
         finally:
             atexit.unregister(self._sync_cleanup_kernel)
