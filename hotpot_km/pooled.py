@@ -161,16 +161,20 @@ class PooledKernelManager(LimitedKernelManager, AsyncMultiKernelManager):
         return kernel_id
 
     async def shutdown_kernel(self, kernel_id, *args, **kwargs):
-        for pool in self._pools.values():
-            for i, f in enumerate(pool):
-                try:
-                    if f.done() and f.result() == kernel_id:
+        if kernel_id not in self._kernels:
+            for pool in self._pools.values():
+                for i, f in enumerate(pool):
+                    try:
+                        if f.done() and f.result() == kernel_id:
+                            pool.pop(i)
+                            break
+                    except Exception as e:
+                        if not isinstance(e, MaximumKernelsException):
+                            self.log.exception("Kernel failed starting up")
                         pool.pop(i)
-                        break
-                except Exception as e:
-                    if not isinstance(e, MaximumKernelsException):
-                        self.log.exception("Kernel failed starting up")
-                    pool.pop(i)
+                else:
+                    continue
+                break
         return await super().shutdown_kernel(kernel_id, *args, **kwargs)
 
     async def shutdown_all(self, *args, **kwargs):
