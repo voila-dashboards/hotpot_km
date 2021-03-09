@@ -145,13 +145,13 @@ class PooledKernelManager(LimitedKernelManager, AsyncMultiKernelManager):
         if kernel_name is None:
             kernel_name = self.default_kernel_name
         self.log.debug("Starting kernel: %s", kernel_name)
-        kernel_id = None
+        kernel_id = kwargs.get("kernel_id")
         while kernel_id is None and self._should_use_pool(kernel_name, kwargs):
             try:
                 kernel_id = await self._pop_pooled_kernel(kernel_name, kwargs)
             except MaximumKernelsException:
                 pass
-        if kernel_id is None:
+        if kernel_id is None or kwargs.get("kernel_id") is not None:
             kernel_id = await super().start_kernel(kernel_name=kernel_name, **kwargs)
 
         self.fill_if_needed()
