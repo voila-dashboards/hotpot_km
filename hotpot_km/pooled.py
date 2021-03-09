@@ -91,7 +91,7 @@ class PooledKernelManager(LimitedKernelManager, AsyncMultiKernelManager):
         self.unfill_as_needed()
         self.fill_if_needed()
 
-    def _should_use_pool(self, kernel_name, kwargs, only_if_available=True):
+    def _should_use_pool(self, kernel_name, kwargs):
         """Verify name and kwargs, and check whether we should use the pool"""
         if "kernel_id" in kwargs:
             return False
@@ -104,10 +104,7 @@ class PooledKernelManager(LimitedKernelManager, AsyncMultiKernelManager):
         ):
             raise ValueError("Cannot start kernel with kwargs %r" % (kwargs,))
 
-        if only_if_available:
-            return len(self._pools.get(kernel_name, ())) > 0
-        else:
-            return self.kernel_pools
+        return len(self._pools.get(kernel_name, ())) > 0
 
     def unfill_as_needed(self):
         """Kills extra kernels in pool"""
