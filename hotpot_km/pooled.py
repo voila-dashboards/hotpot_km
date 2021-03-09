@@ -157,6 +157,15 @@ class PooledKernelManager(LimitedKernelManager, AsyncMultiKernelManager):
         self.fill_if_needed()
         return kernel_id
 
+    async def restart_kernel(self, kernel_id, **kwargs):
+        km = self.get_kernel(kernel_id)
+        kernel_name = km.kernel_name
+        await super().restart_kernel(kernel_id, **kwargs)
+        id_future = asyncio.Future()
+        id_future.set_result(kernel_id)
+        await self._update_kernel(kernel_name, id_future, km._launch_args)
+        await self._initialize(kernel_name, id_future)
+
     async def shutdown_kernel(self, kernel_id, *args, **kwargs):
         if kernel_id not in self._kernels:
             for pool in self._pools.values():
