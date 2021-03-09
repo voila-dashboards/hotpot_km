@@ -12,9 +12,6 @@ import asyncio
 from jupyter_client.multikernelmanager import AsyncMultiKernelManager
 
 from traitlets import Bool, Dict, Float, Integer, List, Unicode, observe
-from nbclient.util import run_sync, ensure_async
-
-
 
 from .client_helper import ExecClient
 from .limited import LimitedKernelManager, MaximumKernelsException
