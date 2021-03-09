@@ -248,7 +248,7 @@ class PooledKernelManager(LimitedKernelManager, AsyncMultiKernelManager):
             # Save some effort
             return kernel_id
 
-        self.log.info("Initializing kernel: %s", kernel_name)
+        self.log.info("Initializing kernel: %s", kernel_id)
 
         client = ExecClient(kernel)
 
@@ -266,7 +266,7 @@ class PooledKernelManager(LimitedKernelManager, AsyncMultiKernelManager):
             if py_imports:
                 code = python_init_import_code.format(modules=self.python_imports)
                 await client.execute(code)
-        self.log.debug("Initialized kernel: %s", kernel_name)
+        self.log.debug("Initialized kernel: %s", kernel_id)
         return kernel_id
 
 
