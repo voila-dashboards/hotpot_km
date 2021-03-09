@@ -17,8 +17,10 @@ from .utils import async_shutdown_all_direct, TestAsyncKernelManager
 class TestMappingKernelManagerUnused(TestAsyncKernelManager):
     __test__ = True
 
+    # static so picklable for multiprocessing on Windows
+    @staticmethod
     @asynccontextmanager
-    async def _get_tcp_km(self):
+    async def _get_tcp_km():
         c = Config()
         km = PooledMappingKernelManager(config=c)
         try:
@@ -38,8 +40,10 @@ class TestMappingKernelManagerUnused(TestAsyncKernelManager):
 class TestMappingKernelManagerApplied(TestAsyncKernelManager):
     __test__ = True
 
+    # static so picklable for multiprocessing on Windows
+    @staticmethod
     @asynccontextmanager
-    async def _get_tcp_km(self):
+    async def _get_tcp_km():
         c = Config()
         c.LimitedKernelManager.max_kernels = 4
         c.PooledMappingKernelManager.fill_delay = 0

@@ -20,8 +20,10 @@ from .utils import async_shutdown_all_direct, TestAsyncKernelManager
 class TestPooledKernelManagerUnused(TestAsyncKernelManager):
     __test__ = True
 
+    # static so picklable for multiprocessing on Windows
+    @staticmethod
     @asynccontextmanager
-    async def _get_tcp_km(self):
+    async def _get_tcp_km():
         c = Config()
         km = PooledKernelManager(config=c)
         try:
@@ -34,8 +36,10 @@ class TestPooledKernelManagerUnused(TestAsyncKernelManager):
 class TestPooledKernelManagerApplied(TestAsyncKernelManager):
     __test__ = True
 
+    # static so picklable for multiprocessing on Windows
+    @staticmethod
     @asynccontextmanager
-    async def _get_tcp_km(self):
+    async def _get_tcp_km():
         c = Config()
         c.LimitedKernelManager.max_kernels = 4
         c.PooledKernelManager.fill_delay = 0
@@ -78,7 +82,7 @@ class TestPooledKernelManagerApplied(TestAsyncKernelManager):
             km.kernel_pools = {NATIVE_KERNEL_NAME: 1}
             self.assertEqual(len(km._pools[NATIVE_KERNEL_NAME]), 1)
 
-    @gen_test(timeout=100000)
+    @gen_test
     async def test_increase_pool_size(self):
         async with self._get_tcp_km() as km:
             km.kernel_pools = {NATIVE_KERNEL_NAME: 3}

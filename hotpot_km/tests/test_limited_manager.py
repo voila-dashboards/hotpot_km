@@ -17,8 +17,10 @@ from .utils import TestAsyncKernelManager
 class TestLimitedKernelManager(TestAsyncKernelManager):
     __test__ = True
 
+    # static so picklable for multiprocessing on Windows
+    @staticmethod
     @asynccontextmanager
-    async def _get_tcp_km(self):
+    async def _get_tcp_km():
         c = Config()
         km = LimitedKernelManager(config=c)
         try:
@@ -31,8 +33,10 @@ class TestLimitedKernelManager(TestAsyncKernelManager):
 class TestLimitedKernelManagerApplied(TestAsyncKernelManager):
     __test__ = True
 
+    # static so picklable for multiprocessing on Windows
+    @staticmethod
     @asynccontextmanager
-    async def _get_tcp_km(self):
+    async def _get_tcp_km():
         c = Config()
         c.LimitedKernelManager.max_kernels = 4
         km = LimitedKernelManager(config=c)

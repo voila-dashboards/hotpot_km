@@ -26,7 +26,9 @@ class TestAsyncKernelManager(AsyncTestCase):
     # Prevent the base class from being collected directly
     __test__ = False
 
-    async def _run_lifecycle(self, km, test_kid=None):
+    # static so picklable for multiprocessing on Windows
+    @staticmethod
+    async def _run_lifecycle(km, test_kid=None):
         if test_kid:
             kid = await km.start_kernel(stdout=PIPE, stderr=PIPE, kernel_id=test_kid)
             assert kid == test_kid
@@ -101,11 +103,23 @@ class TestAsyncKernelManager(AsyncTestCase):
         asyncio.set_event_loop(asyncio.new_event_loop())
         asyncio.get_event_loop().run_until_complete(self.raw_tcp_lifecycle())
 
-    async def raw_tcp_lifecycle(self, test_kid=None):
+    # static so picklable for multiprocessing on Windows
+    @classmethod
+    async def raw_tcp_lifecycle(cls, test_kid=None):
         # Since @gen_test creates an event loop, we need a raw form of
         # test_tcp_lifecycle that assumes the loop already exists.
-        async with self._get_tcp_km() as km:
-            await self._run_lifecycle(km, test_kid=test_kid)
+        async with cls._get_tcp_km() as km:
+            await cls._run_lifecycle(km, test_kid=test_kid)
+
+    # static so picklable for multiprocessing on Windows
+    @classmethod
+    def raw_tcp_lifecycle_sync(cls, test_kid=None):
+        loop = asyncio.get_event_loop()
+        if loop.is_running():
+            # Forked MP, make new loop
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+        loop.run_until_complete(cls.raw_tcp_lifecycle(test_kid=test_kid))
 
     @gen_test
     async def test_start_parallel_thread_kernels(self):
@@ -126,7 +140,7 @@ class TestAsyncKernelManager(AsyncTestCase):
         await self.raw_tcp_lifecycle()
 
         thread = threading.Thread(target=self.tcp_lifecycle_with_loop)
-        proc = mp.Process(target=self.raw_tcp_lifecycle)
+        proc = mp.Process(target=self.raw_tcp_lifecycle_sync)
 
         try:
             thread.start()
