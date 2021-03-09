@@ -198,29 +198,40 @@ class PooledKernelManager(LimitedKernelManager, AsyncMultiKernelManager):
 
 
     async def _update_kernel(self, kernel_name, kernel_id_future, kwargs):
+        base_kws = self.pool_kwargs.get(kernel_name)
+        if base_kws:
+            new_kws = {}
+            for k, v in kwargs.items():
+                if k not in base_kws:
+                    new_kws[k] = v
+                elif base_kws[k] != kwargs[k]:
+                    new_kws[k] = v
+        else:
+            new_kws = kwargs
+
         # Make sure that the kernel is in a state that matches kwargs
         # Currently supported is a python kernel, and the path/cwd and env arguments
-        if kernel_name in ("python3", "python") and kwargs:
+        if kernel_name in ("python3", "python") and new_kws:
             # Avoid client overhead if not needed:
-            if 'path' in kwargs or 'cwd' in kwargs or 'env' in kwargs:
+            if 'path' in new_kws or 'cwd' in new_kws or 'env' in new_kws:
                 kernel_id = await kernel_id_future
                 kernel = self.get_kernel(kernel_id)
                 client = ExecClient(kernel)
                 async with client.setup_kernel():
-                    if 'path' in kwargs:
-                        kwargs['cwd'] = self.cwd_for_path(kwargs.pop('path'))
-                    if 'cwd' in kwargs:
-                        cwd = kwargs.pop('cwd')
+                    if 'path' in new_kws:
+                        new_kws['cwd'] = self.cwd_for_path(new_kws.pop('path'))
+                    if 'cwd' in new_kws:
+                        cwd = new_kws.pop('cwd')
                         code = python_update_cwd_code.format(cwd=cwd)
                         self.log.debug("Updating preheated kernel CWD using")
                         await client.execute(code)
-                    if 'env' in kwargs:
-                        env = kwargs.pop('env')
+                    if 'env' in new_kws:
+                        env = new_kws.pop('env')
                         code = python_update_env_code.format(env=env)
                         self.log.debug("Updating preheated kernel env vars")
                         await client.execute(code)
-        if kwargs:
-            self.log.debug("Unknown kwargs: %s", list(kwargs.keys()))
+        if new_kws:
+            self.log.debug("Unknown kwargs: %s", list(new_kws.keys()))
 
         return await kernel_id_future
 
