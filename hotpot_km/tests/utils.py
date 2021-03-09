@@ -135,20 +135,20 @@ class TestAsyncKernelManager(AsyncTestCase):
     async def _run_lifecycle(self, km, test_kid=None):
         if test_kid:
             kid = await km.start_kernel(stdout=PIPE, stderr=PIPE, kernel_id=test_kid)
-            self.assertTrue(kid == test_kid)
+            assert kid == test_kid
         else:
             kid = await km.start_kernel(stdout=PIPE, stderr=PIPE)
-        self.assertTrue(await ensure_async(km.is_alive(kid)))
-        self.assertTrue(kid in km)
-        self.assertTrue(kid in km.list_kernel_ids())
+        assert await km.is_alive(kid)
+        assert kid in km
+        assert kid in km.list_kernel_ids()
         await km.restart_kernel(kid, now=True)
-        self.assertTrue(await ensure_async(km.is_alive(kid)))
-        self.assertTrue(kid in km.list_kernel_ids())
-        await ensure_async(km.interrupt_kernel(kid))
+        assert await km.is_alive(kid)
+        assert kid in km.list_kernel_ids()
+        await km.interrupt_kernel(kid)
         k = km.get_kernel(kid)
-        self.assertIsInstance(k, (AsyncKernelManager, IOLoopKernelManager))
-        await ensure_async(km.shutdown_kernel(kid, now=True))
-        self.assertNotIn(kid, km)
+        assert isinstance(k, KernelManager)
+        await km.shutdown_kernel(kid, now=True)
+        assert kid not in km, f'{kid} not in {km}'
 
     async def _run_cinfo(self, km, transport, ip):
         kid = await km.start_kernel(stdout=PIPE, stderr=PIPE)
