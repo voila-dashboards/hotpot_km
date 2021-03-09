@@ -195,6 +195,18 @@ class ExecClient(LoggingConfigurable):
         self.kc.allow_stdin = False
         return self.kc
 
+    async def ensure_kernel_client(self) -> None:
+        """Ensure there is a ready kernel client awailable for use.
+        """
+        if self.kc is None:
+            self.kc = await self.start_new_kernel_client()
+        else:
+            try:
+                await ensure_async(self.kc.wait_for_ready(timeout=self.startup_timeout))
+            except RuntimeError:
+                await self._cleanup_kernel()
+                raise
+
     @asynccontextmanager
     async def setup_kernel(self) -> t.AsyncGenerator:
         """
@@ -225,11 +237,7 @@ class ExecClient(LoggingConfigurable):
             pass
 
         try:
-            if self.kc:
-                msg_id = await ensure_async(self.kc.kernel_info())
-                await self.wait_for_reply(msg_id)
-            else:
-                await self.start_new_kernel_client()
+            await self.ensure_kernel_client()
             yield
         finally:
             atexit.unregister(self._sync_cleanup_kernel)
@@ -394,32 +402,6 @@ class ExecClient(LoggingConfigurable):
         if not await ensure_async(self.kc.is_alive()):
             self.log.error("Kernel died while waiting for execute reply.")
             raise DeadKernelError("Kernel died")
-
-    async def wait_for_reply(
-            self,
-            msg_id: str) -> t.Optional[t.Dict]:
-
-        assert self.kc is not None
-        # wait for finish, with timeout
-        timeout = self._get_timeout()
-        cummulative_time = 0
-        while True:
-            try:
-                msg = await ensure_async(
-                    self.kc.shell_channel.get_msg(
-                        timeout=self.shell_timeout_interval
-                    )
-                )
-            except Empty:
-                await self._check_alive()
-                cummulative_time += self.shell_timeout_interval
-                if timeout and cummulative_time > timeout:
-                    await self._handle_timeout(timeout)
-                    break
-            else:
-                if msg['parent_header'].get('msg_id') == msg_id:
-                    return msg
-        return None
 
     def _check_raise_for_error(
             self,
