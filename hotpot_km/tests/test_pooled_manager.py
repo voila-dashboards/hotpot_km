@@ -50,6 +50,7 @@ class TestPooledKernelManagerApplied(TestAsyncKernelManager):
         c.PooledKernelManager.pool_kwargs = {NATIVE_KERNEL_NAME: dict(stdout=PIPE, stderr=PIPE)}
         km = PooledKernelManager(config=c)
         try:
+            await km.wait_for_pool()
             yield km
         finally:
             await km.shutdown_all()
