@@ -1,13 +1,12 @@
 
-from jupyter_server.services.kernels.kernelmanager import MappingKernelManager
+from jupyter_server.services.kernels.kernelmanager import AsyncMappingKernelManager
 
-from . import LimitedKernelManager, PooledKernelManager
+from .pooled import PooledKernelManager
 
 
-class LimitedPooledMappingKernelManager(
+class PooledMappingKernelManager(
     PooledKernelManager,
-    LimitedKernelManager,
-    MappingKernelManager
+    AsyncMappingKernelManager
 ):
     async def restart_kernel(self, kernel_id, **kwargs):
         if kwargs:
