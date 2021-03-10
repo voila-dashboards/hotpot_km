@@ -6,7 +6,20 @@ build-backend = "flit_core.buildapi"
 module = "hotpot_km"
 author = "Vidar Tonaas Fauske"
 author-email = "vidartf@gmail.com"
+classifiers = [
+    "Framework :: Jupyter",
+    "License :: OSI Approved :: BSD License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+license = "BSD-3-Clause"
 home-page = "https://github.com/voila-dashboards/hotpot_km"
+requires-python = "~=3.7"
 requires = [
     "async_generator",
     "jupyter_client",
