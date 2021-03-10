@@ -6,6 +6,7 @@ build-backend = "flit_core.buildapi"
 module = "hotpot_km"
 author = "Vidar Tonaas Fauske"
 author-email = "vidartf@gmail.com"
+home-page = "https://github.com/voila-dashboards/hotpot_km"
 requires = [
     "async_generator",
     "jupyter_client",
