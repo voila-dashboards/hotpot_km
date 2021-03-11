@@ -27,7 +27,7 @@ from nbformat.v4 import output_from_msg
 from jupyter_client import KernelManager
 from jupyter_client.client import KernelClient
 
-from nbclient.util import run_sync, ensure_async
+from .async_utils import run_sync, ensure_async
 
 
 class ControlSignal(Exception):

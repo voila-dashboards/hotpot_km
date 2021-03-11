@@ -8,12 +8,17 @@ from subprocess import PIPE
 from tornado.testing import AsyncTestCase, gen_test
 from unittest import TestCase
 
-from jupyter_client import KernelManager, AsyncKernelManager
+from jupyter_client import KernelManager
 from jupyter_client.ioloop import IOLoopKernelManager
 from jupyter_client.tests.utils import skip_win32
 from jupyter_client.localinterfaces import localhost
-from jupyter_server.utils import ensure_async
 
+from ..async_utils import ensure_async
+
+try:
+    from jupyter_client import AsyncKernelManager
+except ImportError:
+    pass
 
 async def async_shutdown_all_direct(km):
     kids = km.list_kernel_ids()

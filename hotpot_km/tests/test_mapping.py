@@ -8,7 +8,10 @@ from traitlets.config.loader import Config
 from tornado.testing import gen_test
 
 from .. import MaximumKernelsException
-from ..mapping import PooledMappingKernelManager
+try:
+    from ..mapping import PooledMappingKernelManager
+except ImportError:
+    pass
 
 
 from .utils import async_shutdown_all_direct, TestAsyncKernelManager
