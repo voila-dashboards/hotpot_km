@@ -23,7 +23,6 @@ requires-python = "~=3.7"
 requires = [
     "async_generator",
     "jupyter_client",
-    "nbclient",
     "nbformat",
     "traitlets",
 ]

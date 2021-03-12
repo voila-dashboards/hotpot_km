@@ -9,10 +9,13 @@ import pytest
 from tornado.testing import AsyncTestCase, gen_test
 from traitlets.config.loader import Config
 
-from .. import (
-    PooledKernelManager,
-    MaximumKernelsException,
-)
+try:
+    from .. import (
+        PooledKernelManager,
+        MaximumKernelsException,
+    )
+except ImportError:
+    pass
 
 from .utils import async_shutdown_all_direct, TestAsyncKernelManager
 

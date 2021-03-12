@@ -27,7 +27,7 @@ from nbformat.v4 import output_from_msg
 from jupyter_client import KernelManager
 from jupyter_client.client import KernelClient
 
-from nbclient.util import run_sync, ensure_async
+from .async_utils import run_sync, ensure_async
 
 
 class ControlSignal(Exception):
@@ -168,7 +168,7 @@ class ExecClient(LoggingConfigurable):
                 raise
         finally:
             # Remove any state left over even if we failed to stop the kernel
-            await ensure_async(self.km.cleanup_resources())
+            await ensure_async(self.km.cleanup())
             if getattr(self, "kc") and self.kc is not None:
                 await ensure_async(self.kc.stop_channels())
                 self.kc = None

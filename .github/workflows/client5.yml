@@ -1,0 +1,38 @@
+name: Jupyter Client 5
+
+on:
+  push:
+    branches: '*'
+  pull_request:
+    branches: '*'
+
+jobs:
+  build-n-test-n-coverage:
+    name: Build, test and code coverage
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest,  windows-latest]
+        python-version: [ 3.7, 3.8, 3.9 ]
+    env:
+        OS: ${{ matrix.os }}
+        PYTHON: '3.9'
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v1
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      run: |
+        pip install --upgrade setuptools pip flit codecov
+        pip install --upgrade git+https://github.com/jupyter/jupyter_client.git@987f3e1de21e34d7f6f8b3225a6b044e1bdb0152
+        flit install
+        pip install "jupyter_client<6"
+    - name: Run the tests
+      run: py.test --cov hotpot_km -v -s --log-cli-level=DEBUG -k _sync
+    - name: Code coverage
+      run: codecov
