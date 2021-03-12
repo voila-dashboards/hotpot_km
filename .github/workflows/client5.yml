@@ -33,6 +33,6 @@ jobs:
         flit install
         pip install "jupyter_client<6"
     - name: Run the tests
-      run: py.test --cov hotpot_km -v -k _sync
+      run: py.test --cov hotpot_km -v -s --log-cli-level=DEBUG -k _sync
     - name: Code coverage
       run: codecov
