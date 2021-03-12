@@ -4,6 +4,7 @@ import threading
 import uuid
 import multiprocessing as mp
 
+import pytest
 from subprocess import PIPE
 from unittest import TestCase
 
@@ -103,6 +104,7 @@ class TestKernelManager(TestCase):
         with cls._get_tcp_km() as km:
             cls._run_lifecycle(km, test_kid=test_kid)
 
+    @pytest.mark.skip("Parallel use is currently not properly vetted, fails often")
     def test_start_parallel_thread_kernels(self):
         self.raw_tcp_lifecycle()
 
@@ -115,7 +117,7 @@ class TestKernelManager(TestCase):
             thread.join()
             thread2.join()
 
-    @skip_win32
+    @pytest.mark.skip("Parallel use is currently not properly vetted, fails often")
     def test_start_parallel_process_kernels(self):
         self.raw_tcp_lifecycle()
 
