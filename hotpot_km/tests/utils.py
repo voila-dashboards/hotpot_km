@@ -4,6 +4,7 @@ import threading
 import uuid
 import multiprocessing as mp
 
+import pytest
 from subprocess import PIPE
 from tornado.testing import AsyncTestCase, gen_test
 from unittest import TestCase
