@@ -89,7 +89,7 @@ class TestUpdatePooled(AsyncTestCase):
                 async with client.setup_kernel():
                     await client.execute('import foo_module\nprint(foo_module.__file__)')
                 self.assertEqual(client._outputs, [{
-                    'name': 'stdout', 'output_type': 'stream', 'text': f'{foo_mod}\n'
+                    'name': 'stdout', 'output_type': 'stream', 'text': f'{foo_mod.resolve()}\n'
                 }])
             finally:
                 await km.shutdown_all()
