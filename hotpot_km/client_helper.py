@@ -156,6 +156,11 @@ class ExecClient(LoggingConfigurable):
         self._store_outputs = _store_outputs
         self._outputs = []
 
+    async def cleanup_client(self) -> None:
+        if getattr(self, "kc") and self.kc is not None:
+            await ensure_async(self.kc.stop_channels())
+            self.kc = None
+
     async def _cleanup_kernel(self) -> None:
         assert self.km is not None
         try:
@@ -168,11 +173,9 @@ class ExecClient(LoggingConfigurable):
                 raise
         finally:
             # Remove any state left over even if we failed to stop the kernel
+            await self.cleanup_client()
             await ensure_async(self.km.cleanup())
-            if getattr(self, "kc") and self.kc is not None:
-                await ensure_async(self.kc.stop_channels())
-                self.kc = None
-                self.km = None
+            self.km = None
 
     _sync_cleanup_kernel = run_sync(_cleanup_kernel)
 
@@ -246,6 +249,7 @@ class ExecClient(LoggingConfigurable):
                 loop.remove_signal_handler(signal.SIGTERM)
             except (NotImplementedError, RuntimeError):
                 pass
+            await self.cleanup_client()
 
     async def execute(
             self,

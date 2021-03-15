@@ -94,7 +94,7 @@ class TestAsyncKernelManager(AsyncTestCase):
         async with self._get_tcp_km() as km:
             await self._run_cinfo(km, 'tcp', localhost())
 
-    @gen_test(timeout=20)
+    @gen_test(timeout=60)
     async def test_start_sequence_tcp_kernels(self):
         """Ensure that a sequence of kernel startups doesn't break anything."""
         async with self._get_tcp_km() as km:

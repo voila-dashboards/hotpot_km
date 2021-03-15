@@ -25,7 +25,7 @@ from .utils import async_shutdown_all_direct
 
 
 class TestUpdatePooled(AsyncTestCase):
-    @gen_test(timeout=20)
+    @gen_test
     async def test_kernel_ok(self):
         # Just test that we can start a kernel and communicate with it.
         c = Config()
@@ -47,7 +47,7 @@ class TestUpdatePooled(AsyncTestCase):
         finally:
             await km.shutdown_all()
 
-    @gen_test(timeout=20)
+    @gen_test
     async def test_env(self):
         c = Config()
         c.PooledKernelManager.kernel_pools = {NATIVE_KERNEL_NAME: 1}
@@ -68,7 +68,7 @@ class TestUpdatePooled(AsyncTestCase):
         finally:
             await km.shutdown_all()
 
-    @gen_test(timeout=20)
+    @gen_test
     async def test_cwd(self):
         with TemporaryDirectory() as tmp_dir:
             c = Config()
