@@ -91,20 +91,22 @@ class TestKernelManager(TestCase):
         with self._get_tcp_km() as km:
             self._run_lifecycle(km)
 
-    def tcp_lifecycle_with_loop(self):
+    # static so picklable for multiprocessing on Windows
+    @classmethod
+    def tcp_lifecycle_with_loop(cls):
         # Ensure each thread has an event loop
+        import os, sys
+        if os.name == 'nt' and sys.version_info >= (3, 7):
+            asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
         asyncio.set_event_loop(asyncio.new_event_loop())
-        self.raw_tcp_lifecycle()
+        cls.raw_tcp_lifecycle()
 
     # static so picklable for multiprocessing on Windows
     @classmethod
     def raw_tcp_lifecycle(cls, test_kid=None):
-        # Since @gen_test creates an event loop, we need a raw form of
-        # test_tcp_lifecycle that assumes the loop already exists.
         with cls._get_tcp_km() as km:
             cls._run_lifecycle(km, test_kid=test_kid)
 
-    @pytest.mark.skip("Parallel use is currently not properly vetted, fails often")
     def test_start_parallel_thread_kernels(self):
         self.raw_tcp_lifecycle()
 
@@ -117,12 +119,11 @@ class TestKernelManager(TestCase):
             thread.join()
             thread2.join()
 
-    @pytest.mark.skip("Parallel use is currently not properly vetted, fails often")
     def test_start_parallel_process_kernels(self):
         self.raw_tcp_lifecycle()
 
         thread = threading.Thread(target=self.tcp_lifecycle_with_loop)
-        proc = mp.Process(target=self.raw_tcp_lifecycle)
+        proc = mp.Process(target=self.tcp_lifecycle_with_loop)
 
         try:
             thread.start()
