@@ -9,7 +9,7 @@ from tornado.testing import gen_test
 
 from .. import MaximumKernelsException
 try:
-    from ..mapping import PooledMappingKernelManager
+    from ..mapping_sync import SyncPooledMappingKernelManager
 except ImportError:
     pass
 
@@ -26,7 +26,7 @@ class TestSyncMappingKernelManagerUnused(TestAsyncKernelManager):
     @asynccontextmanager
     async def _get_tcp_km():
         c = Config()
-        km = PooledMappingKernelManager(config=c)
+        km = SyncPooledMappingKernelManager(config=c)
         try:
             yield km
         finally:
@@ -48,11 +48,11 @@ class TestSyncMappingKernelManagerApplied(TestAsyncKernelManager):
     @asynccontextmanager
     async def _get_tcp_km():
         c = Config()
-        c.LimitedKernelManager.max_kernels = 4
-        c.PooledMappingKernelManager.fill_delay = 0
-        c.PooledMappingKernelManager.kernel_pools = {NATIVE_KERNEL_NAME: 2}
-        c.PooledMappingKernelManager.pool_kwargs = {NATIVE_KERNEL_NAME: dict(stdout=PIPE, stderr=PIPE)}
-        km = PooledMappingKernelManager(config=c)
+        c.SyncLimitedKernelManager.max_kernels = 4
+        c.SyncPooledMappingKernelManager.fill_delay = 0
+        c.SyncPooledMappingKernelManager.kernel_pools = {NATIVE_KERNEL_NAME: 2}
+        c.SyncPooledMappingKernelManager.pool_kwargs = {NATIVE_KERNEL_NAME: dict(stdout=PIPE, stderr=PIPE)}
+        km = SyncPooledMappingKernelManager(config=c)
         try:
             yield km
         finally:
@@ -73,7 +73,6 @@ class TestSyncMappingKernelManagerApplied(TestAsyncKernelManager):
                 kid = await ensure_async(km.start_kernel(stdout=PIPE, stderr=PIPE))
                 self.assertIn(kid, km)
                 kids.append(kid)
-                self.assertEqual(len(km._pools[NATIVE_KERNEL_NAME]), 2)
 
             await async_shutdown_all_direct(km)
             for kid in kids:
@@ -85,7 +84,6 @@ class TestSyncMappingKernelManagerApplied(TestAsyncKernelManager):
                 kid = await ensure_async(km.start_kernel(stdout=PIPE, stderr=PIPE))
                 self.assertIn(kid, km)
                 kids.append(kid)
-                self.assertEqual(len(km._pools[NATIVE_KERNEL_NAME]), 2)
 
             await ensure_async(km.shutdown_all())
             for kid in kids:

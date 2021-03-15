@@ -25,7 +25,7 @@ async def async_shutdown_all_direct(km):
     kids = km.list_kernel_ids()
     futs = []
     for kid in kids:
-        await km.shutdown_kernel(kid)
+        await ensure_async(km.shutdown_kernel(kid))
 
 
 class TestAsyncKernelManager(AsyncTestCase):
@@ -36,24 +36,24 @@ class TestAsyncKernelManager(AsyncTestCase):
     @staticmethod
     async def _run_lifecycle(km, test_kid=None):
         if test_kid:
-            kid = await km.start_kernel(stdout=PIPE, stderr=PIPE, kernel_id=test_kid)
+            kid = await ensure_async(km.start_kernel(stdout=PIPE, stderr=PIPE, kernel_id=test_kid))
             assert kid == test_kid
         else:
-            kid = await km.start_kernel(stdout=PIPE, stderr=PIPE)
-        assert await km.is_alive(kid)
+            kid = await ensure_async(km.start_kernel(stdout=PIPE, stderr=PIPE))
+        assert await ensure_async(km.is_alive(kid))
         assert kid in km
         assert kid in km.list_kernel_ids()
-        await km.restart_kernel(kid, now=True)
-        assert await km.is_alive(kid)
+        await ensure_async(km.restart_kernel(kid, now=True))
+        assert await ensure_async(km.is_alive(kid))
         assert kid in km.list_kernel_ids()
-        await km.interrupt_kernel(kid)
+        await ensure_async(km.interrupt_kernel(kid))
         k = km.get_kernel(kid)
         assert isinstance(k, KernelManager)
-        await km.shutdown_kernel(kid, now=True)
+        await ensure_async(km.shutdown_kernel(kid, now=True))
         assert kid not in km, f'{kid} not in {km}'
 
     async def _run_cinfo(self, km, transport, ip):
-        kid = await km.start_kernel(stdout=PIPE, stderr=PIPE)
+        kid = await ensure_async(km.start_kernel(stdout=PIPE, stderr=PIPE))
         k = km.get_kernel(kid)
         cinfo = km.get_connection_info(kid)
         self.assertEqual(transport, cinfo['transport'])
@@ -82,7 +82,7 @@ class TestAsyncKernelManager(AsyncTestCase):
     @gen_test(timeout=20)
     async def test_shutdown_all(self):
         async with self._get_tcp_km() as km:
-            kid = await km.start_kernel(stdout=PIPE, stderr=PIPE)
+            kid = await ensure_async(km.start_kernel(stdout=PIPE, stderr=PIPE))
             self.assertIn(kid, km)
             await ensure_async(km.shutdown_all())
             self.assertNotIn(kid, km)
