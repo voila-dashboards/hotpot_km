@@ -1,6 +1,5 @@
 
 import asyncio
-import sys
 import threading
 import uuid
 import multiprocessing as mp
@@ -120,7 +119,7 @@ class TestKernelManager(TestCase):
             thread.join()
             thread2.join()
 
-    @pytest.mark.skipif(sys.platform.startswith('linux'), reason="Linux")
+    @pytest.mark.skipif(mp.get_start_method() == "fork", reason="Fork")
     def test_start_parallel_process_kernels(self):
         self.raw_tcp_lifecycle()
 
