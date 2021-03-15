@@ -34,3 +34,6 @@ test = [
     "jupyter_server",
     "jupyter_client[test]",
 ]
+mapping=[
+    "jupyter_server",
+]
