@@ -55,7 +55,7 @@ class TestPooledKernelManagerApplied(TestAsyncKernelManager):
         finally:
             await km.shutdown_all()
 
-    @gen_test(timeout=20)
+    @gen_test(timeout=60)
     async def test_exceed_pool_size(self):
         async with self._get_tcp_km() as km:
             self.assertEqual(len(km._pools[NATIVE_KERNEL_NAME]), 2)
@@ -85,6 +85,8 @@ class TestPooledKernelManagerApplied(TestAsyncKernelManager):
         async with self._get_tcp_km() as km:
             km.kernel_pools = {NATIVE_KERNEL_NAME: 1}
             self.assertEqual(len(km._pools[NATIVE_KERNEL_NAME]), 1)
+            # km.shutdown_kernel is not reentrant, so await:
+            await asyncio.gather(*km._discarded)
 
     @gen_test
     async def test_increase_pool_size(self):
@@ -92,7 +94,7 @@ class TestPooledKernelManagerApplied(TestAsyncKernelManager):
             km.kernel_pools = {NATIVE_KERNEL_NAME: 3}
             self.assertEqual(len(km._pools[NATIVE_KERNEL_NAME]), 3)
 
-    @gen_test(timeout=20)
+    @gen_test(timeout=60)
     async def test_breach_max(self):
         async with self._get_tcp_km() as km:
             kids = []

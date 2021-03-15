@@ -64,7 +64,7 @@ class TestMappingKernelManagerApplied(TestAsyncKernelManager):
     async def test_tcp_lifecycle_with_kernel_id(self):
         pass
 
-    @gen_test(timeout=20)
+    @gen_test(timeout=60)
     async def test_exceed_pool_size(self):
         async with self._get_tcp_km() as km:
             self.assertEqual(len(km._pools[NATIVE_KERNEL_NAME]), 2)
@@ -91,7 +91,7 @@ class TestMappingKernelManagerApplied(TestAsyncKernelManager):
             for kid in kids:
                 self.assertNotIn(kid, km)
 
-    @gen_test(timeout=20)
+    @gen_test(timeout=60)
     async def test_breach_max(self):
         async with self._get_tcp_km() as km:
             kids = []

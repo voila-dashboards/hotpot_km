@@ -48,7 +48,7 @@ class TestLimitedKernelManagerApplied(TestAsyncKernelManager):
         finally:
             await km.shutdown_all()
 
-    @gen_test(timeout=20)
+    @gen_test(timeout=60)
     async def test_touch_max(self):
         async with self._get_tcp_km() as km:
             kids = []
@@ -70,7 +70,7 @@ class TestLimitedKernelManagerApplied(TestAsyncKernelManager):
             for kid in kids:
                 self.assertNotIn(kid, km)
 
-    @gen_test(timeout=20)
+    @gen_test(timeout=60)
     async def test_breach_max(self):
         async with self._get_tcp_km() as km:
             kids = []
