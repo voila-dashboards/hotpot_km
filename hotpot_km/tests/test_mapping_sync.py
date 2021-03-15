@@ -10,8 +10,8 @@ from tornado.testing import gen_test
 from .. import MaximumKernelsException
 try:
     from ..mapping_sync import SyncPooledMappingKernelManager
-except ImportError:
-    pass
+except ImportError as e:
+    print(f"Won't be able to test synced pool: {e}")
 
 from..async_utils import ensure_async
 from .utils import async_shutdown_all_direct, TestAsyncKernelManager
