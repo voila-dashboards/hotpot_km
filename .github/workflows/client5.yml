@@ -31,7 +31,7 @@ jobs:
         pip install --upgrade setuptools pip flit codecov
         pip install --upgrade git+https://github.com/jupyter/jupyter_client.git@987f3e1de21e34d7f6f8b3225a6b044e1bdb0152
         flit install
-        pip install "jupyter_client<6"
+        pip install "jupyter_client<6" "jupyter_server<0.3" pytest_tornasync
     - name: Run the tests
       run: py.test --cov hotpot_km -v -s --log-cli-level=DEBUG -k _sync
     - name: Code coverage

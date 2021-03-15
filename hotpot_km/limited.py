@@ -25,7 +25,7 @@ class SyncLimitedKernelManager(MultiKernelManager):
         if "kernel_id" not in kwargs and len(self) >= self.max_kernels > 0:
             self.log.debug("Refusing to start kernel, maximum number reached.")
             raise MaximumKernelsException("No kernels are available.")
-        return super().start_kernel(kernel_name, **kwargs)
+        return super().start_kernel(kernel_name=kernel_name, **kwargs)
 
 
 __all__ = [

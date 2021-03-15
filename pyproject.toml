@@ -24,6 +24,7 @@ requires = [
     "async_generator",
     "jupyter_client",
     "nbformat",
+    "nest_asyncio",
     "traitlets",
 ]
 
@@ -33,4 +34,7 @@ test = [
     "pytest-cov",
     "jupyter_server",
     "jupyter_client[test]",
+]
+mapping=[
+    "jupyter_server",
 ]

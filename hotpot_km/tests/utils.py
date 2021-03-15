@@ -11,7 +11,6 @@ from unittest import TestCase
 
 from jupyter_client import KernelManager
 from jupyter_client.ioloop import IOLoopKernelManager
-from jupyter_client.tests.utils import skip_win32
 from jupyter_client.localinterfaces import localhost
 
 from ..async_utils import ensure_async
@@ -25,7 +24,7 @@ async def async_shutdown_all_direct(km):
     kids = km.list_kernel_ids()
     futs = []
     for kid in kids:
-        await km.shutdown_kernel(kid)
+        await ensure_async(km.shutdown_kernel(kid))
 
 
 class TestAsyncKernelManager(AsyncTestCase):
@@ -36,24 +35,24 @@ class TestAsyncKernelManager(AsyncTestCase):
     @staticmethod
     async def _run_lifecycle(km, test_kid=None):
         if test_kid:
-            kid = await km.start_kernel(stdout=PIPE, stderr=PIPE, kernel_id=test_kid)
+            kid = await ensure_async(km.start_kernel(stdout=PIPE, stderr=PIPE, kernel_id=test_kid))
             assert kid == test_kid
         else:
-            kid = await km.start_kernel(stdout=PIPE, stderr=PIPE)
-        assert await km.is_alive(kid)
+            kid = await ensure_async(km.start_kernel(stdout=PIPE, stderr=PIPE))
+        assert await ensure_async(km.is_alive(kid))
         assert kid in km
         assert kid in km.list_kernel_ids()
-        await km.restart_kernel(kid, now=True)
-        assert await km.is_alive(kid)
+        await ensure_async(km.restart_kernel(kid, now=True))
+        assert await ensure_async(km.is_alive(kid))
         assert kid in km.list_kernel_ids()
-        await km.interrupt_kernel(kid)
+        await ensure_async(km.interrupt_kernel(kid))
         k = km.get_kernel(kid)
         assert isinstance(k, KernelManager)
-        await km.shutdown_kernel(kid, now=True)
+        await ensure_async(km.shutdown_kernel(kid, now=True))
         assert kid not in km, f'{kid} not in {km}'
 
     async def _run_cinfo(self, km, transport, ip):
-        kid = await km.start_kernel(stdout=PIPE, stderr=PIPE)
+        kid = await ensure_async(km.start_kernel(stdout=PIPE, stderr=PIPE))
         k = km.get_kernel(kid)
         cinfo = km.get_connection_info(kid)
         self.assertEqual(transport, cinfo['transport'])
@@ -82,7 +81,7 @@ class TestAsyncKernelManager(AsyncTestCase):
     @gen_test(timeout=20)
     async def test_shutdown_all(self):
         async with self._get_tcp_km() as km:
-            kid = await km.start_kernel(stdout=PIPE, stderr=PIPE)
+            kid = await ensure_async(km.start_kernel(stdout=PIPE, stderr=PIPE))
             self.assertIn(kid, km)
             await ensure_async(km.shutdown_all())
             self.assertNotIn(kid, km)
@@ -104,10 +103,15 @@ class TestAsyncKernelManager(AsyncTestCase):
         async with self._get_tcp_km() as km:
             await self._run_lifecycle(km)
 
-    def tcp_lifecycle_with_loop(self):
+    # static so picklable for multiprocessing on Windows
+    @classmethod
+    def tcp_lifecycle_with_loop(cls):
         # Ensure each thread has an event loop
+        import os, sys
+        if os.name == 'nt' and sys.version_info >= (3, 7):
+            asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
         asyncio.set_event_loop(asyncio.new_event_loop())
-        asyncio.get_event_loop().run_until_complete(self.raw_tcp_lifecycle())
+        cls.raw_tcp_lifecycle_sync()
 
     # static so picklable for multiprocessing on Windows
     @classmethod
@@ -120,14 +124,8 @@ class TestAsyncKernelManager(AsyncTestCase):
     # static so picklable for multiprocessing on Windows
     @classmethod
     def raw_tcp_lifecycle_sync(cls, test_kid=None):
-        loop = asyncio.get_event_loop()
-        if loop.is_running():
-            # Forked MP, make new loop
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-        loop.run_until_complete(cls.raw_tcp_lifecycle(test_kid=test_kid))
+        asyncio.get_event_loop().run_until_complete(cls.raw_tcp_lifecycle(test_kid=test_kid))
 
-    @pytest.mark.skip("Parallel use is currently not properly vetted, fails often")
     @gen_test
     async def test_start_parallel_thread_kernels(self):
         await self.raw_tcp_lifecycle()
@@ -141,13 +139,13 @@ class TestAsyncKernelManager(AsyncTestCase):
             thread.join()
             thread2.join()
 
-    @pytest.mark.skip("Parallel use is currently not properly vetted, fails often")
+    @pytest.mark.skipif(mp.get_start_method() == "fork", reason="Fork")
     @gen_test
     async def test_start_parallel_process_kernels(self):
         await self.raw_tcp_lifecycle()
 
         thread = threading.Thread(target=self.tcp_lifecycle_with_loop)
-        proc = mp.Process(target=self.raw_tcp_lifecycle_sync)
+        proc = mp.Process(target=self.tcp_lifecycle_with_loop)
 
         try:
             thread.start()

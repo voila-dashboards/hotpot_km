@@ -1,5 +1,4 @@
 
-import asyncio
 from contextlib import contextmanager
 from subprocess import PIPE
 from unittest import TestCase
@@ -12,11 +11,11 @@ from .. import (
     SyncPooledKernelManager,
     MaximumKernelsException,
 )
-
 from .utils_sync import shutdown_all_direct, TestKernelManager
 
+
 # Test that it works as normal with default config
-class TestPooledKernelManagerUnused(TestKernelManager):
+class TestSyncPooledKernelManagerUnused(TestKernelManager):
     __test__ = True
 
     # static so picklable for multiprocessing on Windows
@@ -32,7 +31,7 @@ class TestPooledKernelManagerUnused(TestKernelManager):
 
 
 # Test that it works with an unstrict pool
-class TestPooledKernelManagerApplied(TestKernelManager):
+class TestSyncPooledKernelManagerApplied(TestKernelManager):
     __test__ = True
 
     # static so picklable for multiprocessing on Windows
@@ -48,7 +47,7 @@ class TestPooledKernelManagerApplied(TestKernelManager):
         try:
             yield km
         finally:
-            km.shutdown_all()
+            km.shutdown_all(now=True)
 
     def test_exceed_pool_size(self):
         with self._get_tcp_km() as km:
@@ -78,8 +77,6 @@ class TestPooledKernelManagerApplied(TestKernelManager):
         with self._get_tcp_km() as km:
             km.kernel_pools = {NATIVE_KERNEL_NAME: 1}
             self.assertEqual(len(km._pools[NATIVE_KERNEL_NAME]), 1)
-            # km.shutdown_kernel is not reentrant, so await:
-            asyncio.gather(*km._discarded)
 
     def test_increase_pool_size(self):
         with self._get_tcp_km() as km:
@@ -113,9 +110,8 @@ class TestPooledKernelManagerApplied(TestKernelManager):
             km.shutdown_all()
 
 
-
 # Test that it works with an strict pool
-class TestPooledKernelManagerStrict(TestCase):
+class TestSyncPooledKernelManagerStrict(TestCase):
 
     def test_strict_name_correct(self):
         c = Config()

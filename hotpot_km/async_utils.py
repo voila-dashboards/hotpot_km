@@ -45,6 +45,8 @@ def check_patch_tornado() -> None:
 
 def just_run(coro: Awaitable) -> Any:
     """Make the coroutine run, even if there is an event loop running (using nest_asyncio)"""
+    if not inspect.isawaitable(coro):
+        return coro
     # original from vaex/asyncio.py
     loop = asyncio._get_running_loop()
     if loop is None:
