@@ -119,6 +119,7 @@ class TestKernelManager(TestCase):
             thread.join()
             thread2.join()
 
+    @pytest.mark.skipif(sys.platform.startswith('linux'), reason="Linux")
     def test_start_parallel_process_kernels(self):
         self.raw_tcp_lifecycle()
 
