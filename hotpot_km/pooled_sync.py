@@ -110,7 +110,7 @@ class SyncPooledKernelManager(SyncLimitedKernelManager):
             self._pools[name] = pool
             for i in range(target - len(pool)):
                 kw = self.pool_kwargs.get(name, {})
-                kernel_id = super().start_kernel(kernel_name=name, **kw)
+                kernel_id = just_run(super().start_kernel(kernel_name=name, **kw))
                 # Todo: use delay
                 # Start the work on the loop immediately, so it is ready when needed:
                 self._init_futs[kernel_id] = loop.create_task(self._initialize(name, kernel_id))
@@ -133,7 +133,7 @@ class SyncPooledKernelManager(SyncLimitedKernelManager):
         if kernel_id is None and self._should_use_pool(kernel_name, kwargs):
             kernel_id = just_run(self._pop_pooled_kernel(kernel_name, kwargs))
         else:
-            kernel_id = super().start_kernel(kernel_name=kernel_name, **kwargs)
+            kernel_id = just_run(super().start_kernel(kernel_name=kernel_name, **kwargs))
 
         try:
             self.fill_if_needed()
@@ -144,7 +144,7 @@ class SyncPooledKernelManager(SyncLimitedKernelManager):
     def restart_kernel(self, kernel_id, **kwargs):
         km = self.get_kernel(kernel_id)
         kernel_name = km.kernel_name
-        super().restart_kernel(kernel_id, **kwargs)
+        just_run(super().restart_kernel(kernel_id, **kwargs))
         just_run(self._update_kernel(kernel_name, kernel_id, km._launch_args))
         just_run(self._initialize(kernel_name, kernel_id))
 
