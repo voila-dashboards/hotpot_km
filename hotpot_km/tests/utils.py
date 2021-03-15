@@ -11,7 +11,6 @@ from unittest import TestCase
 
 from jupyter_client import KernelManager
 from jupyter_client.ioloop import IOLoopKernelManager
-from jupyter_client.tests.utils import skip_win32
 from jupyter_client.localinterfaces import localhost
 
 from ..async_utils import ensure_async
@@ -140,6 +139,7 @@ class TestAsyncKernelManager(AsyncTestCase):
             thread.join()
             thread2.join()
 
+    @pytest.mark.skipif(sys.platform.startswith('linux'), reason="Linux")
     @gen_test
     async def test_start_parallel_process_kernels(self):
         await self.raw_tcp_lifecycle()
