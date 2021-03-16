@@ -11,6 +11,7 @@ async def wait_before(delay, aw):
     await asyncio.sleep(delay)
     return await aw
 
+
 async def await_then_kill(km, aw_id):
     return await km.shutdown_kernel(await aw_id)
 
@@ -23,24 +24,29 @@ def ensure_event_loop():
         asyncio.set_event_loop(loop)
     return loop
 
+
 def check_ipython() -> None:
     # original from vaex/asyncio.py
-    IPython = sys.modules.get('IPython')
+    IPython = sys.modules.get("IPython")
     if IPython:
-        IPython_version = tuple(map(int, IPython.__version__.split('.')))  # type: ignore
+        IPython_version = tuple(map(int, IPython.__version__.split(".")))  # type: ignore
         if IPython_version < (7, 0, 0):
-            raise RuntimeError(f'You are using IPython {IPython.__version__} '  # type: ignore
-                               'while we require 7.0.0+, please update IPython')
+            raise RuntimeError(
+                f"You are using IPython {IPython.__version__} "  # type: ignore
+                "while we require 7.0.0+, please update IPython"
+            )
 
 
 def check_patch_tornado() -> None:
     """If tornado is imported, add the patched asyncio.Future to its tuple of acceptable Futures"""
     # original from vaex/asyncio.py
-    if 'tornado' in sys.modules:
+    if "tornado" in sys.modules:
         import tornado.concurrent  # type: ignore
+
         if asyncio.Future not in tornado.concurrent.FUTURES:
-            tornado.concurrent.FUTURES = \
-                tornado.concurrent.FUTURES + (asyncio.Future, )  # type: ignore
+            tornado.concurrent.FUTURES = tornado.concurrent.FUTURES + (
+                asyncio.Future,
+            )  # type: ignore
 
 
 def just_run(coro: Awaitable) -> Any:
@@ -64,6 +70,7 @@ def just_run(coro: Awaitable) -> Any:
         # to have reentrant event loops
         check_ipython()
         import nest_asyncio
+
         nest_asyncio.apply()
         check_patch_tornado()
     return loop.run_until_complete(coro)
@@ -86,8 +93,10 @@ def run_sync(coro: Callable) -> Callable:
     result :
         Whatever the coroutine returns.
     """
+
     def wrapped(*args, **kwargs):
         return just_run(coro(*args, **kwargs))
+
     wrapped.__doc__ = coro.__doc__
     return wrapped
 
@@ -100,7 +109,7 @@ async def ensure_async(obj: Union[Awaitable, Any]) -> Any:
         try:
             result = await obj
         except RuntimeError as e:
-            if str(e) == 'cannot reuse already awaited coroutine':
+            if str(e) == "cannot reuse already awaited coroutine":
                 # obj is already the coroutine's result
                 return obj
             raise

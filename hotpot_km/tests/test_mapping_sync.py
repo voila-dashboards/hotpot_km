@@ -1,4 +1,3 @@
-
 from contextlib import asynccontextmanager
 from subprocess import PIPE
 
@@ -8,12 +7,13 @@ from traitlets.config.loader import Config
 from tornado.testing import gen_test
 
 from .. import MaximumKernelsException
+
 try:
     from ..mapping_sync import SyncPooledMappingKernelManager
 except ImportError as e:
     print(f"Won't be able to test synced pool: {e}")
 
-from..async_utils import ensure_async
+from ..async_utils import ensure_async
 from .utils import async_shutdown_all_direct, TestAsyncKernelManager
 
 
@@ -51,7 +51,9 @@ class TestSyncMappingKernelManagerApplied(TestAsyncKernelManager):
         c.SyncLimitedKernelManager.max_kernels = 4
         c.SyncPooledMappingKernelManager.fill_delay = 0
         c.SyncPooledMappingKernelManager.kernel_pools = {NATIVE_KERNEL_NAME: 2}
-        c.SyncPooledMappingKernelManager.pool_kwargs = {NATIVE_KERNEL_NAME: dict(stdout=PIPE, stderr=PIPE)}
+        c.SyncPooledMappingKernelManager.pool_kwargs = {
+            NATIVE_KERNEL_NAME: dict(stdout=PIPE, stderr=PIPE)
+        }
         km = SyncPooledMappingKernelManager(config=c)
         try:
             yield km

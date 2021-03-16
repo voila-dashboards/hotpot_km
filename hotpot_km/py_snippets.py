@@ -1,4 +1,3 @@
-
 python_update_cwd_code = """
 import os;
 os.chdir({cwd!r});

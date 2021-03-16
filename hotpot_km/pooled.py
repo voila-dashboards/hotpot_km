@@ -21,42 +21,46 @@ from .py_snippets import (
 )
 
 
-
 class PooledKernelManager(LimitedKernelManager):
-    kernel_pools = Dict(Integer(0), config=True,
+    kernel_pools = Dict(
+        Integer(0),
+        config=True,
         help="Mapping from kernel name to the number of started kernels to keep on standby",
     )
 
-    pool_kwargs = Dict(Dict(), config=True,
-        help="Mapping from kernel name to the arguments passed to kernel_start when pre-warming"
+    pool_kwargs = Dict(
+        Dict(),
+        config=True,
+        help="Mapping from kernel name to the arguments passed to kernel_start when pre-warming",
     )
 
-    strict_pool_names = Bool(config=True,
-        help="Whether to allow starting kernels with other names than those explicitly listed in kernel_pools"
+    strict_pool_names = Bool(
+        config=True,
+        help="Whether to allow starting kernels with other names than those explicitly listed in kernel_pools",
     )
 
-    strict_pool_kwargs = Bool(config=True,
-        help="Whether to allow starting kernels with other kwargs than those explicitly listed in pool_kwargs"
+    strict_pool_kwargs = Bool(
+        config=True,
+        help="Whether to allow starting kernels with other kwargs than those explicitly listed in pool_kwargs",
     )
 
-    fill_delay = Float(1, config=True,
-        help="Wait time before re-filling the pool after a kernel is used"
+    fill_delay = Float(
+        1,
+        config=True,
+        help="Wait time before re-filling the pool after a kernel is used",
     )
 
-    initialization_code = Dict(config=True,
-        help='Code that gets executed at startup'
+    initialization_code = Dict(config=True, help="Code that gets executed at startup")
+
+    python_imports = List(
+        Unicode(), [], config=True, help="List of Python modules/packages to import"
     )
 
-    python_imports = List(Unicode(), [], config=True,
-        help='List of Python modules/packages to import'
-    )
-
-    _wait_at_startup = Bool(False, config=True,
-        help="Wait till all kernels pools are filled at startup"
+    _wait_at_startup = Bool(
+        False, config=True, help="Wait till all kernels pools are filled at startup"
     )
 
     _pools = Dict()
-
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -64,7 +68,7 @@ class PooledKernelManager(LimitedKernelManager):
         if self._wait_at_startup:
             loop = ensure_event_loop()
             loop.run_until_complete(self.wait_for_pool())
-        self.observe(self._pool_size_changed, 'kernel_pools')
+        self.observe(self._pool_size_changed, "kernel_pools")
         self._discarded = []
 
     def _pool_size_changed(self, change):
@@ -79,8 +83,7 @@ class PooledKernelManager(LimitedKernelManager):
         if self.strict_pool_names and kernel_name not in self.kernel_pools:
             raise ValueError("Cannot start kernel with name %r" % (kernel_name,))
         if self.strict_pool_kwargs and (
-            kernel_name not in self.pool_kwargs or
-            kwargs != self.pool_kwargs[kernel_name]
+            kernel_name not in self.pool_kwargs or kwargs != self.pool_kwargs[kernel_name]
         ):
             raise ValueError("Cannot start kernel with kwargs %r" % (kwargs,))
 
@@ -108,10 +111,7 @@ class PooledKernelManager(LimitedKernelManager):
                 kw = self.pool_kwargs.get(name, {})
                 fut = super().start_kernel(kernel_name=name, **kw)
                 # Start the work on the loop immediately, so it is ready when needed:
-                task = loop.create_task(wait_before(
-                    delay,
-                    self._initialize(name, fut)
-                ))
+                task = loop.create_task(wait_before(delay, self._initialize(name, fut)))
                 pool.append(task)
 
     async def wait_for_pool(self):
@@ -188,7 +188,6 @@ class PooledKernelManager(LimitedKernelManager):
         self._pools = {}
         self._discarded = []
 
-
     async def _update_kernel(self, kernel_name, kernel_id_future, kwargs):
         base_kws = self.pool_kwargs.get(kernel_name)
         if base_kws:
@@ -205,20 +204,20 @@ class PooledKernelManager(LimitedKernelManager):
         # Currently supported is a python kernel, and the path/cwd and env arguments
         if kernel_name in ("python3", "python") and new_kws:
             # Avoid client overhead if not needed:
-            if 'path' in new_kws or 'cwd' in new_kws or 'env' in new_kws:
+            if "path" in new_kws or "cwd" in new_kws or "env" in new_kws:
                 kernel_id = await kernel_id_future
                 kernel = self.get_kernel(kernel_id)
                 client = ExecClient(kernel)
                 async with client.setup_kernel():
-                    if 'path' in new_kws:
-                        new_kws['cwd'] = self.cwd_for_path(new_kws.pop('path'))
-                    if 'cwd' in new_kws:
-                        cwd = new_kws.pop('cwd')
+                    if "path" in new_kws:
+                        new_kws["cwd"] = self.cwd_for_path(new_kws.pop("path"))
+                    if "cwd" in new_kws:
+                        cwd = new_kws.pop("cwd")
                         code = python_update_cwd_code.format(cwd=cwd)
                         self.log.debug("Updating preheated kernel CWD using")
                         await client.execute(code)
-                    if 'env' in new_kws:
-                        env = new_kws.pop('env')
+                    if "env" in new_kws:
+                        env = new_kws.pop("env")
                         code = python_update_env_code.format(env=env)
                         self.log.debug("Updating preheated kernel env vars")
                         await client.execute(code)
@@ -236,13 +235,13 @@ class PooledKernelManager(LimitedKernelManager):
         kernel = self.get_kernel(kernel_id)
 
         try:
-            language_to_extensions = {'python': 'py'}
-            language = kernel.kernel_spec_manager.get_all_specs()[kernel_name]['spec']['language']
+            language_to_extensions = {"python": "py"}
+            language = kernel.kernel_spec_manager.get_all_specs()[kernel_name]["spec"]["language"]
             extension = language_to_extensions[language]
         except Exception:
             pass
 
-        py_imports = language == 'python' and self.python_imports
+        py_imports = language == "python" and self.python_imports
 
         if not extension and not py_imports:
             # Save some effort
@@ -254,13 +253,14 @@ class PooledKernelManager(LimitedKernelManager):
 
         from jupyter_core.paths import jupyter_config_path
         from pathlib import Path
+
         async with client.setup_kernel():
             if extension:
                 for base_path in map(Path, jupyter_config_path()):
-                    path = base_path / f'kernel_pool_init_{kernel_name}.{extension}'
+                    path = base_path / f"kernel_pool_init_{kernel_name}.{extension}"
                     if path.exists():
                         with open(path) as f:
-                            self.log.debug('Running %s for initializing kernel', path)
+                            self.log.debug("Running %s for initializing kernel", path)
                             code = f.read()
                         await client.execute(code)
             if py_imports:
@@ -270,7 +270,6 @@ class PooledKernelManager(LimitedKernelManager):
         return kernel_id
 
 
-
 __all__ = [
-    'PooledKernelManager',
+    "PooledKernelManager",
 ]

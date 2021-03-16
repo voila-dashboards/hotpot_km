@@ -1,4 +1,3 @@
-
 import asyncio
 import threading
 import uuid
@@ -19,6 +18,7 @@ try:
     from jupyter_client import AsyncKernelManager
 except ImportError:
     pass
+
 
 async def async_shutdown_all_direct(km):
     kids = km.list_kernel_ids()
@@ -49,22 +49,22 @@ class TestAsyncKernelManager(AsyncTestCase):
         k = km.get_kernel(kid)
         assert isinstance(k, KernelManager)
         await ensure_async(km.shutdown_kernel(kid, now=True))
-        assert kid not in km, f'{kid} not in {km}'
+        assert kid not in km, f"{kid} not in {km}"
 
     async def _run_cinfo(self, km, transport, ip):
         kid = await ensure_async(km.start_kernel(stdout=PIPE, stderr=PIPE))
         k = km.get_kernel(kid)
         cinfo = km.get_connection_info(kid)
-        self.assertEqual(transport, cinfo['transport'])
-        self.assertEqual(ip, cinfo['ip'])
-        self.assertTrue('stdin_port' in cinfo)
-        self.assertTrue('iopub_port' in cinfo)
+        self.assertEqual(transport, cinfo["transport"])
+        self.assertEqual(ip, cinfo["ip"])
+        self.assertTrue("stdin_port" in cinfo)
+        self.assertTrue("iopub_port" in cinfo)
         stream = km.connect_iopub(kid)
         stream.close()
-        self.assertTrue('shell_port' in cinfo)
+        self.assertTrue("shell_port" in cinfo)
         stream = km.connect_shell(kid)
         stream.close()
-        self.assertTrue('hb_port' in cinfo)
+        self.assertTrue("hb_port" in cinfo)
         stream = km.connect_hb(kid)
         stream.close()
         await ensure_async(km.shutdown_kernel(kid, now=True))
@@ -91,7 +91,7 @@ class TestAsyncKernelManager(AsyncTestCase):
     @gen_test
     async def test_tcp_cinfo(self):
         async with self._get_tcp_km() as km:
-            await self._run_cinfo(km, 'tcp', localhost())
+            await self._run_cinfo(km, "tcp", localhost())
 
     @gen_test(timeout=60)
     async def test_start_sequence_tcp_kernels(self):
@@ -108,7 +108,8 @@ class TestAsyncKernelManager(AsyncTestCase):
     def tcp_lifecycle_with_loop(cls):
         # Ensure each thread has an event loop
         import os, sys
-        if os.name == 'nt' and sys.version_info >= (3, 7):
+
+        if os.name == "nt" and sys.version_info >= (3, 7):
             asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
         asyncio.set_event_loop(asyncio.new_event_loop())
         cls.raw_tcp_lifecycle_sync()

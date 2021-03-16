@@ -1,4 +1,3 @@
-
 import asyncio
 from contextlib import asynccontextmanager
 from subprocess import PIPE
@@ -122,10 +121,8 @@ class TestPooledKernelManagerApplied(TestAsyncKernelManager):
             await km.shutdown_all()
 
 
-
 # Test that it works with an strict pool
 class TestPooledKernelManagerStrict(AsyncTestCase):
-
     @gen_test
     async def test_strict_name_correct(self):
         c = Config()
@@ -149,8 +146,8 @@ class TestPooledKernelManagerStrict(AsyncTestCase):
         km = PooledKernelManager(config=c)
 
         try:
-            with self.assertRaisesRegex(ValueError, 'Cannot start kernel with name'):
-                kid = await km.start_kernel(kernel_name='foo', stdout=PIPE, stderr=PIPE)
+            with self.assertRaisesRegex(ValueError, "Cannot start kernel with name"):
+                kid = await km.start_kernel(kernel_name="foo", stdout=PIPE, stderr=PIPE)
             self.assertEqual(len(km._pools[NATIVE_KERNEL_NAME]), 1)
         finally:
             await km.shutdown_all()
@@ -179,7 +176,7 @@ class TestPooledKernelManagerStrict(AsyncTestCase):
         km = PooledKernelManager(config=c)
 
         try:
-            with self.assertRaisesRegex(ValueError, 'Cannot start kernel with kwargs'):
+            with self.assertRaisesRegex(ValueError, "Cannot start kernel with kwargs"):
                 kid = await km.start_kernel()
             self.assertEqual(len(km._pools[NATIVE_KERNEL_NAME]), 1)
         finally:

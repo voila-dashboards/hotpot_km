@@ -1,4 +1,3 @@
-
 import asyncio
 from contextlib import asynccontextmanager
 from unittest import mock
@@ -13,6 +12,7 @@ from tornado.testing import AsyncTestCase, gen_test
 from traitlets.config.loader import Config
 
 from ..client_helper import ExecClient
+
 try:
     from .. import (
         PooledKernelManager,
@@ -44,9 +44,10 @@ class TestInitializePooled(AsyncTestCase):
             client = ExecClient(kernel, _store_outputs=True)
             async with client.setup_kernel():
                 await client.execute('import sys\nprint("turtle" in sys.modules)')
-            self.assertEqual(client._outputs, [{
-                'name': 'stdout', 'output_type': 'stream', 'text': 'False\n'
-            }])
+            self.assertEqual(
+                client._outputs,
+                [{"name": "stdout", "output_type": "stream", "text": "False\n"}],
+            )
         finally:
             await km.shutdown_all()
 
@@ -67,13 +68,14 @@ class TestInitializePooled(AsyncTestCase):
             client = ExecClient(kernel, _store_outputs=True)
             async with client.setup_kernel():
                 await client.execute('import sys\nprint("turtle" in sys.modules)')
-            self.assertEqual(client._outputs, [{
-                'name': 'stdout', 'output_type': 'stream', 'text': 'True\n'
-            }])
+            self.assertEqual(
+                client._outputs,
+                [{"name": "stdout", "output_type": "stream", "text": "True\n"}],
+            )
         finally:
             await km.shutdown_all()
 
-    @pytest.mark.xfail() # initialize happens before update, so this won't work
+    @pytest.mark.xfail()  # initialize happens before update, so this won't work
     @gen_test(timeout=20)
     async def test_cwd_import(self):
         with TemporaryDirectory() as tmp_dir:
@@ -95,12 +97,12 @@ class TestInitializePooled(AsyncTestCase):
                 client = ExecClient(kernel, _store_outputs=True)
                 async with client.setup_kernel():
                     await client.execute('import sys\nprint("foo_module" in sys.modules)')
-                self.assertEqual(client._outputs, [{
-                    'name': 'stdout', 'output_type': 'stream', 'text': 'True\n'
-                }])
+                self.assertEqual(
+                    client._outputs,
+                    [{"name": "stdout", "output_type": "stream", "text": "True\n"}],
+                )
             finally:
                 await km.shutdown_all()
-
 
     @gen_test(timeout=20)
     async def test_file_init(self):
@@ -124,9 +126,10 @@ class TestInitializePooled(AsyncTestCase):
 
                     client = ExecClient(kernel, _store_outputs=True)
                     async with client.setup_kernel():
-                        await client.execute('print(foo)')
-                    self.assertEqual(client._outputs, [{
-                        'name': 'stdout', 'output_type': 'stream', 'text': '1\n'
-                    }])
+                        await client.execute("print(foo)")
+                    self.assertEqual(
+                        client._outputs,
+                        [{"name": "stdout", "output_type": "stream", "text": "1\n"}],
+                    )
                 finally:
                     await km.shutdown_all()

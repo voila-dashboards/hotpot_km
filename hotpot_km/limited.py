@@ -17,7 +17,9 @@ class MaximumKernelsException(Exception):
 
 
 class SyncLimitedKernelManager(MultiKernelManager):
-    max_kernels = Integer(0, config=True,
+    max_kernels = Integer(
+        0,
+        config=True,
         help="The maximum number of concurrent kernels",
     )
 
@@ -29,16 +31,21 @@ class SyncLimitedKernelManager(MultiKernelManager):
 
 
 __all__ = [
-    'MaximumKernelsException',
-    'SyncLimitedKernelManager',
+    "MaximumKernelsException",
+    "SyncLimitedKernelManager",
 ]
 
 
 try:
-    from jupyter_client.multikernelmanager import AsyncMultiKernelManager, MultiKernelManager
+    from jupyter_client.multikernelmanager import (
+        AsyncMultiKernelManager,
+        MultiKernelManager,
+    )
 
     class LimitedKernelManager(AsyncMultiKernelManager):
-        max_kernels = Integer(0, config=True,
+        max_kernels = Integer(
+            0,
+            config=True,
             help="The maximum number of concurrent kernels",
         )
 
@@ -48,7 +55,7 @@ try:
                 raise MaximumKernelsException("No kernels are available.")
             return super().pre_start_kernel(kernel_name, kwargs)
 
-    __all__.append('LimitedKernelManager')
+    __all__.append("LimitedKernelManager")
 
 except ImportError:
     pass

@@ -33,15 +33,13 @@ from .async_utils import run_sync, ensure_async
 class ControlSignal(Exception):
     pass
 
+
 class ExecTimeoutError(TimeoutError, ControlSignal):
     pass
 
+
 class ExecutionError(ControlSignal):
-    def __init__(
-            self,
-            traceback: str,
-            ename: str,
-            evalue: str) -> None:
+    def __init__(self, traceback: str, ename: str, evalue: str) -> None:
         super().__init__(traceback)
         self.traceback = traceback
         self.ename = ename
@@ -53,32 +51,29 @@ class ExecutionError(ControlSignal):
     def __str__(self) -> str:
         s = self.__unicode__()
         if not isinstance(s, str):
-            s = s.encode('utf8', 'replace')
+            s = s.encode("utf8", "replace")
         return s
 
     def __unicode__(self) -> str:
         return self.traceback
 
     @classmethod
-    def from_msg(
-            cls,
-            msg: Dict):
-        """Instantiate from message contents (message is either execute_reply or error)
-        """
-        tb = '\n'.join(msg.get('traceback', []))
+    def from_msg(cls, msg: Dict):
+        """Instantiate from message contents (message is either execute_reply or error)"""
+        tb = "\n".join(msg.get("traceback", []))
         return cls(
             traceback=tb,
-            ename=msg.get('ename', '<Error>'),
-            evalue=msg.get('evalue', ''),
+            ename=msg.get("ename", "<Error>"),
+            evalue=msg.get("evalue", ""),
         )
-
 
 
 class DeadKernelError(RuntimeError):
     pass
 
+
 def timestamp() -> str:
-    return datetime.datetime.utcnow().isoformat() + 'Z'
+    return datetime.datetime.utcnow().isoformat() + "Z"
 
 
 class ExecClient(LoggingConfigurable):
@@ -136,12 +131,9 @@ class ExecClient(LoggingConfigurable):
         ),
     ).tag(config=True)
 
-
     def __init__(
-            self,
-            km: KernelManager = None,
-            _store_outputs: bool = False, # for testing purposes
-            **kw) -> None:
+        self, km: KernelManager = None, _store_outputs: bool = False, **kw  # for testing purposes
+    ) -> None:
         """Initializes the execution manager.
 
         Parameters
@@ -169,7 +161,7 @@ class ExecClient(LoggingConfigurable):
                 await ensure_async(self.km.shutdown_kernel())
         except RuntimeError as e:
             # The error isn't specialized, so we have to check the message
-            if 'No kernel is running!' not in str(e):
+            if "No kernel is running!" not in str(e):
                 raise
         finally:
             # Remove any state left over even if we failed to stop the kernel
@@ -199,8 +191,7 @@ class ExecClient(LoggingConfigurable):
         return self.kc
 
     async def ensure_kernel_client(self) -> None:
-        """Ensure there is a ready kernel client awailable for use.
-        """
+        """Ensure there is a ready kernel client awailable for use."""
         if self.kc is None:
             self.kc = await self.start_new_kernel_client()
         else:
@@ -251,10 +242,7 @@ class ExecClient(LoggingConfigurable):
                 pass
             await self.cleanup_client()
 
-    async def execute(
-            self,
-            source: str,
-            **kwargs) -> t.Optional[dict]:
+    async def execute(self, source: str, **kwargs) -> t.Optional[dict]:
         """
         Executes code. Requires that a setup_kernel context is held.
 
@@ -297,15 +285,14 @@ class ExecClient(LoggingConfigurable):
         )
         exec_timeout = self._get_timeout()
 
-        task_poll_kernel_alive = asyncio.ensure_future(
-            self._poll_kernel_alive()
-        )
-        task_poll_output_msg = asyncio.ensure_future(
-            self._poll_output_msg(parent_msg_id)
-        )
+        task_poll_kernel_alive = asyncio.ensure_future(self._poll_kernel_alive())
+        task_poll_output_msg = asyncio.ensure_future(self._poll_output_msg(parent_msg_id))
         self.task_poll_for_reply = asyncio.ensure_future(
             self._poll_for_reply(
-                parent_msg_id, exec_timeout, task_poll_output_msg, task_poll_kernel_alive
+                parent_msg_id,
+                exec_timeout,
+                task_poll_output_msg,
+                task_poll_kernel_alive,
             )
         )
         try:
@@ -327,11 +314,12 @@ class ExecClient(LoggingConfigurable):
         return exec_reply
 
     async def _poll_for_reply(
-            self,
-            msg_id: str,
-            timeout: t.Optional[int],
-            task_poll_output_msg: asyncio.Future,
-            task_poll_kernel_alive: asyncio.Future) -> t.Dict:
+        self,
+        msg_id: str,
+        timeout: t.Optional[int],
+        task_poll_output_msg: asyncio.Future,
+        task_poll_kernel_alive: asyncio.Future,
+    ) -> t.Dict:
 
         assert self.kc is not None
         new_timeout: t.Optional[float] = None
@@ -341,7 +329,7 @@ class ExecClient(LoggingConfigurable):
         while True:
             try:
                 msg = await ensure_async(self.kc.shell_channel.get_msg(timeout=new_timeout))
-                if msg['parent_header'].get('msg_id') == msg_id:
+                if msg["parent_header"].get("msg_id") == msg_id:
                     try:
                         await asyncio.wait_for(task_poll_output_msg, self.iopub_timeout)
                     except (asyncio.TimeoutError, Empty):
@@ -367,7 +355,7 @@ class ExecClient(LoggingConfigurable):
         assert self.kc is not None
         while True:
             msg = await ensure_async(self.kc.iopub_channel.get_msg(timeout=None))
-            if msg['parent_header'].get('msg_id') == parent_msg_id:
+            if msg["parent_header"].get("msg_id") == parent_msg_id:
                 if self.process_message(msg):
                     return
 
@@ -389,9 +377,7 @@ class ExecClient(LoggingConfigurable):
 
         return timeout
 
-    async def _handle_timeout(
-            self,
-            timeout: int) -> None:
+    async def _handle_timeout(self, timeout: int) -> None:
 
         self.log.error("Timeout waiting for execute reply (%is)." % timeout)
         if self.interrupt_on_timeout:
@@ -407,19 +393,16 @@ class ExecClient(LoggingConfigurable):
             self.log.error("Kernel died while waiting for execute reply.")
             raise DeadKernelError("Kernel died")
 
-    def _check_raise_for_error(
-            self,
-            exec_reply: t.Optional[t.Dict]) -> None:
+    def _check_raise_for_error(self, exec_reply: t.Optional[t.Dict]) -> None:
 
         if exec_reply is None:
             return None
 
-        exec_reply_content = exec_reply['content']
-        if exec_reply_content['status'] != 'error':
+        exec_reply_content = exec_reply["content"]
+        if exec_reply_content["status"] != "error":
             return None
 
         raise ExecutionError.from_msg(exec_reply_content)
-
 
     def process_message(self, msg: t.Dict) -> bool:
         """
@@ -438,29 +421,28 @@ class ExecClient(LoggingConfigurable):
         Whether the message indicates computation completeness.
 
         """
-        msg_type = msg['msg_type']
+        msg_type = msg["msg_type"]
         self.log.debug("msg_type: %s", msg_type)
-        content = msg['content']
-        if msg_type == 'status':
-            if content['execution_state'] == 'idle':
+        content = msg["content"]
+        if msg_type == "status":
+            if content["execution_state"] == "idle":
                 return True
-        elif (
-            self._store_outputs and
-            msg_type not in ['clear_output', 'comm', 'execute_input', 'update_display_data']
-        ):
+        elif self._store_outputs and msg_type not in [
+            "clear_output",
+            "comm",
+            "execute_input",
+            "update_display_data",
+        ]:
             # Assign output as our processed "result"
             self.output(self._outputs, msg)
         return False
 
-    def output(
-            self,
-            outs: t.List,
-            msg: t.Dict) -> t.Optional[t.List]:
+    def output(self, outs: t.List, msg: t.Dict) -> t.Optional[t.List]:
 
         try:
             out = output_from_msg(msg)
         except ValueError:
-            self.log.error("unhandled iopub msg: " + msg['msg_type'])
+            self.log.error("unhandled iopub msg: " + msg["msg_type"])
             return
 
         outs.append(out)

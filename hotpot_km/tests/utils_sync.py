@@ -1,4 +1,3 @@
-
 import asyncio
 import threading
 import uuid
@@ -42,22 +41,22 @@ class TestKernelManager(TestCase):
         k = km.get_kernel(kid)
         assert isinstance(k, KernelManager)
         km.shutdown_kernel(kid, now=True)
-        assert kid not in km, f'{kid} not in {km}'
+        assert kid not in km, f"{kid} not in {km}"
 
     def _run_cinfo(self, km, transport, ip):
         kid = km.start_kernel(stdout=PIPE, stderr=PIPE)
         k = km.get_kernel(kid)
         cinfo = km.get_connection_info(kid)
-        self.assertEqual(transport, cinfo['transport'])
-        self.assertEqual(ip, cinfo['ip'])
-        self.assertTrue('stdin_port' in cinfo)
-        self.assertTrue('iopub_port' in cinfo)
+        self.assertEqual(transport, cinfo["transport"])
+        self.assertEqual(ip, cinfo["ip"])
+        self.assertTrue("stdin_port" in cinfo)
+        self.assertTrue("iopub_port" in cinfo)
         stream = km.connect_iopub(kid)
         stream.close()
-        self.assertTrue('shell_port' in cinfo)
+        self.assertTrue("shell_port" in cinfo)
         stream = km.connect_shell(kid)
         stream.close()
-        self.assertTrue('hb_port' in cinfo)
+        self.assertTrue("hb_port" in cinfo)
         stream = km.connect_hb(kid)
         stream.close()
         km.shutdown_kernel(kid, now=True)
@@ -80,7 +79,7 @@ class TestKernelManager(TestCase):
 
     def test_tcp_cinfo(self):
         with self._get_tcp_km() as km:
-            self._run_cinfo(km, 'tcp', localhost())
+            self._run_cinfo(km, "tcp", localhost())
 
     def test_start_sequence_tcp_kernels(self):
         """Ensure that a sequence of kernel startups doesn't break anything."""
@@ -96,7 +95,8 @@ class TestKernelManager(TestCase):
     def tcp_lifecycle_with_loop(cls):
         # Ensure each thread has an event loop
         import os, sys
-        if os.name == 'nt' and sys.version_info >= (3, 7):
+
+        if os.name == "nt" and sys.version_info >= (3, 7):
             asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
         asyncio.set_event_loop(asyncio.new_event_loop())
         cls.raw_tcp_lifecycle()

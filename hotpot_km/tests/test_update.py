@@ -1,4 +1,3 @@
-
 import asyncio
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -12,6 +11,7 @@ from tornado.testing import AsyncTestCase, gen_test
 from traitlets.config.loader import Config
 
 from ..client_helper import ExecClient
+
 try:
     from .. import (
         PooledKernelManager,
@@ -41,9 +41,10 @@ class TestUpdatePooled(AsyncTestCase):
             client = ExecClient(kernel, _store_outputs=True)
             async with client.setup_kernel():
                 await client.execute('import os\nprint(os.environ.get("VARFOO"))')
-            self.assertEqual(client._outputs, [{
-                'name': 'stdout', 'output_type': 'stream', 'text': 'None\n'
-            }])
+            self.assertEqual(
+                client._outputs,
+                [{"name": "stdout", "output_type": "stream", "text": "None\n"}],
+            )
         finally:
             await km.shutdown_all()
 
@@ -55,16 +56,17 @@ class TestUpdatePooled(AsyncTestCase):
         km = PooledKernelManager(config=c)
 
         try:
-            kid = await km.start_kernel(env={'VARFOO': 'BARBAR'})
+            kid = await km.start_kernel(env={"VARFOO": "BARBAR"})
             kernel = km.get_kernel(kid)
             self.assertIsNotNone(kernel)
 
             client = ExecClient(kernel, _store_outputs=True)
             async with client.setup_kernel():
                 await client.execute('import os\nprint(os.environ.get("VARFOO"))')
-            self.assertEqual(client._outputs, [{
-                'name': 'stdout', 'output_type': 'stream', 'text': 'BARBAR\n'
-            }])
+            self.assertEqual(
+                client._outputs,
+                [{"name": "stdout", "output_type": "stream", "text": "BARBAR\n"}],
+            )
         finally:
             await km.shutdown_all()
 
@@ -87,9 +89,18 @@ class TestUpdatePooled(AsyncTestCase):
 
                 client = ExecClient(kernel, _store_outputs=True)
                 async with client.setup_kernel():
-                    await client.execute('import foo_module, pathlib\nprint(pathlib.Path(foo_module.__file__).resolve())')
-                self.assertEqual(client._outputs, [{
-                    'name': 'stdout', 'output_type': 'stream', 'text': f'{foo_mod.resolve()}\n'
-                }])
+                    await client.execute(
+                        "import foo_module, pathlib\nprint(pathlib.Path(foo_module.__file__).resolve())"
+                    )
+                self.assertEqual(
+                    client._outputs,
+                    [
+                        {
+                            "name": "stdout",
+                            "output_type": "stream",
+                            "text": f"{foo_mod.resolve()}\n",
+                        }
+                    ],
+                )
             finally:
                 await km.shutdown_all()

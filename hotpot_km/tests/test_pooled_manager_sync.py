@@ -1,4 +1,3 @@
-
 from contextlib import contextmanager
 from subprocess import PIPE
 from unittest import TestCase
@@ -112,7 +111,6 @@ class TestSyncPooledKernelManagerApplied(TestKernelManager):
 
 # Test that it works with an strict pool
 class TestSyncPooledKernelManagerStrict(TestCase):
-
     def test_strict_name_correct(self):
         c = Config()
         c.SyncPooledKernelManager.kernel_pools = {NATIVE_KERNEL_NAME: 1}
@@ -134,8 +132,8 @@ class TestSyncPooledKernelManagerStrict(TestCase):
         km = SyncPooledKernelManager(config=c)
 
         try:
-            with self.assertRaisesRegex(ValueError, 'Cannot start kernel with name'):
-                kid = km.start_kernel(kernel_name='foo', stdout=PIPE, stderr=PIPE)
+            with self.assertRaisesRegex(ValueError, "Cannot start kernel with name"):
+                kid = km.start_kernel(kernel_name="foo", stdout=PIPE, stderr=PIPE)
             self.assertEqual(len(km._pools[NATIVE_KERNEL_NAME]), 1)
         finally:
             km.shutdown_all()
@@ -162,7 +160,7 @@ class TestSyncPooledKernelManagerStrict(TestCase):
         km = SyncPooledKernelManager(config=c)
 
         try:
-            with self.assertRaisesRegex(ValueError, 'Cannot start kernel with kwargs'):
+            with self.assertRaisesRegex(ValueError, "Cannot start kernel with kwargs"):
                 kid = km.start_kernel()
             self.assertEqual(len(km._pools[NATIVE_KERNEL_NAME]), 1)
         finally:

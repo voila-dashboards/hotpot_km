@@ -1,4 +1,3 @@
-
 from contextlib import asynccontextmanager
 from subprocess import PIPE
 
@@ -8,6 +7,7 @@ from traitlets.config.loader import Config
 from tornado.testing import gen_test
 
 from .. import MaximumKernelsException
+
 try:
     from ..mapping import PooledMappingKernelManager
 except ImportError:
@@ -38,7 +38,6 @@ class TestMappingKernelManagerUnused(TestAsyncKernelManager):
         pass
 
 
-
 # Test that it works with a max that is larger than pool size
 class TestMappingKernelManagerApplied(TestAsyncKernelManager):
     __test__ = True
@@ -51,7 +50,9 @@ class TestMappingKernelManagerApplied(TestAsyncKernelManager):
         c.LimitedKernelManager.max_kernels = 4
         c.PooledMappingKernelManager.fill_delay = 0
         c.PooledMappingKernelManager.kernel_pools = {NATIVE_KERNEL_NAME: 2}
-        c.PooledMappingKernelManager.pool_kwargs = {NATIVE_KERNEL_NAME: dict(stdout=PIPE, stderr=PIPE)}
+        c.PooledMappingKernelManager.pool_kwargs = {
+            NATIVE_KERNEL_NAME: dict(stdout=PIPE, stderr=PIPE)
+        }
         km = PooledMappingKernelManager(config=c)
         try:
             yield km
