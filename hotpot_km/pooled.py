@@ -243,7 +243,9 @@ class PooledKernelManager(LimitedKernelManager):
 
         py_imports = language == "python" and self.python_imports
 
-        if not extension and not py_imports:
+        config_code = self.initialization_code.get(kernel_name)
+
+        if not extension and not py_imports and not config_code:
             # Save some effort
             return kernel_id
 
@@ -255,6 +257,11 @@ class PooledKernelManager(LimitedKernelManager):
         from pathlib import Path
 
         async with client.setup_kernel():
+            if py_imports:
+                code = python_init_import_code.format(modules=self.python_imports)
+                await client.execute(code)
+            if config_code:
+                await client.execute(config_code)
             if extension:
                 for base_path in map(Path, jupyter_config_path()):
                     path = base_path / f"kernel_pool_init_{kernel_name}.{extension}"
@@ -263,9 +270,6 @@ class PooledKernelManager(LimitedKernelManager):
                             self.log.debug("Running %s for initializing kernel", path)
                             code = f.read()
                         await client.execute(code)
-            if py_imports:
-                code = python_init_import_code.format(modules=self.python_imports)
-                await client.execute(code)
         self.log.debug("Initialized kernel: %s", kernel_id)
         return kernel_id
 
