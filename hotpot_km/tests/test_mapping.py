@@ -55,6 +55,7 @@ class TestMappingKernelManagerApplied(TestAsyncKernelManager):
         }
         km = PooledMappingKernelManager(config=c)
         try:
+            await km.wait_for_pool()
             yield km
         finally:
             await km.shutdown_all()

@@ -133,3 +133,29 @@ class TestInitializePooled(AsyncTestCase):
                     )
                 finally:
                     await km.shutdown_all()
+
+    @gen_test(timeout=20)
+    async def test_init(self):
+        with TemporaryDirectory() as tmp_dir:
+            c = Config()
+            c.PooledKernelManager.kernel_pools = {NATIVE_KERNEL_NAME: 1}
+            c.PooledKernelManager.strict_pool_names = True
+            c.PooledKernelManager.initialization_code = {NATIVE_KERNEL_NAME: "import turtle"}
+            # Need mapping manager to resolve init files:
+            km = PooledKernelManager(config=c)
+            await km.wait_for_pool()
+
+        try:
+            kid = await km.start_kernel()
+            kernel = km.get_kernel(kid)
+            self.assertIsNotNone(kernel)
+
+            client = ExecClient(kernel, _store_outputs=True)
+            async with client.setup_kernel():
+                await client.execute('import sys\nprint("turtle" in sys.modules)')
+            self.assertEqual(
+                client._outputs,
+                [{"name": "stdout", "output_type": "stream", "text": "True\n"}],
+            )
+        finally:
+            await km.shutdown_all()
