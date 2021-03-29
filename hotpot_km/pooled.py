@@ -12,7 +12,7 @@ import asyncio
 from traitlets import Bool, Dict, Float, Integer, List, Unicode, observe
 
 from .async_utils import await_then_kill, ensure_event_loop, wait_before
-from .client_helper import ExecClient
+from .client_helper import ExecClient, DeadKernelError
 from .limited import LimitedKernelManager, MaximumKernelsException
 from .py_snippets import (
     python_update_cwd_code,
@@ -132,7 +132,7 @@ class PooledKernelManager(LimitedKernelManager):
         while kernel_id is None and self._should_use_pool(kernel_name, kwargs):
             try:
                 kernel_id = await self._pop_pooled_kernel(kernel_name, kwargs)
-            except MaximumKernelsException:
+            except (MaximumKernelsException, DeadKernelError):
                 pass
         if kernel_id is None or kwargs.get("kernel_id") is not None:
             kernel_id = await super().start_kernel(kernel_name=kernel_name, **kwargs)

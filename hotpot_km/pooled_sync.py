@@ -13,7 +13,7 @@ from jupyter_client.multikernelmanager import MultiKernelManager
 from traitlets import Bool, Dict, Float, Integer, List, Unicode, observe
 
 from .async_utils import ensure_event_loop, just_run
-from .client_helper import ExecClient
+from .client_helper import ExecClient, DeadKernelError
 from .limited import SyncLimitedKernelManager, MaximumKernelsException
 from .py_snippets import (
     python_update_cwd_code,
@@ -136,9 +136,12 @@ class SyncPooledKernelManager(SyncLimitedKernelManager):
             kernel_name = self.default_kernel_name
         self.log.debug("Starting kernel: %s", kernel_name)
         kernel_id = kwargs.get("kernel_id")
-        if kernel_id is None and self._should_use_pool(kernel_name, kwargs):
-            kernel_id = just_run(self._pop_pooled_kernel(kernel_name, kwargs))
-        else:
+        while kernel_id is None and self._should_use_pool(kernel_name, kwargs):
+            try:
+                kernel_id = just_run(self._pop_pooled_kernel(kernel_name, kwargs))
+            except DeadKernelError:
+                pass
+        if kernel_id is None or kwargs.get("kernel_id") is not None:
             kernel_id = just_run(super().start_kernel(kernel_name=kernel_name, **kwargs))
 
         try:
