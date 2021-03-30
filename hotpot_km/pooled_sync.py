@@ -160,16 +160,21 @@ class SyncPooledKernelManager(SyncLimitedKernelManager):
     def shutdown_kernel(self, kernel_id, *args, **kwargs):
         if kernel_id in self._init_futs:
             self._init_futs.pop(kernel_id).cancel()
+        for pool in self._pools.values():
+            if kernel_id in pool:
+                pool.remove(kernel_id)
+                break
         return super().shutdown_kernel(kernel_id, *args, **kwargs)
 
     def shutdown_all(self, *args, **kwargs):
-        for pool in self._pools.values():
+        pools = self._pools
+        self._pools = {}
+        for pool in pools.values():
             # The iteration gets confused if we don't copy pool
             for kernel_id in tuple(pool):
                 self.shutdown_kernel(kernel_id, *args, **kwargs)
         for kernel_id in self.list_kernel_ids():
             self.shutdown_kernel(kernel_id, *args, **kwargs)
-        self._pools = {}
         self._init_futs = {}
 
     async def _update_kernel(self, kernel_name, kernel_id, kwargs):
