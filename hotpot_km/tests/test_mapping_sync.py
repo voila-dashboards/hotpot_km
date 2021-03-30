@@ -46,6 +46,37 @@ class TestSyncMappingKernelManagerUnused(TestAsyncKernelManager):
         pass
 
 
+class TestSyncMappingLimitsWithoutPool(AsyncTestCase):
+    @gen_test
+    async def test_foo(self):
+        c = Config()
+        c.SyncLimitedKernelManager.max_kernels = 4
+        km = SyncPooledMappingKernelManager(config=c)
+        try:
+            kids = []
+            for i in range(4):
+                kid = await ensure_async(km.start_kernel(stdout=PIPE, stderr=PIPE))
+                self.assertIn(kid, km)
+                kids.append(kid)
+
+            with self.assertRaises(MaximumKernelsException):
+                await ensure_async(km.start_kernel(stdout=PIPE, stderr=PIPE))
+
+            # Remove and add one to make sure we correctly recovered
+            await ensure_async(km.shutdown_kernel(kid))
+            self.assertNotIn(kid, km)
+            kids.pop()
+
+            kid = await ensure_async(km.start_kernel(stdout=PIPE, stderr=PIPE))
+            self.assertIn(kid, km)
+            kids.append(kid)
+
+            await ensure_async(km.shutdown_all())
+            for kid in kids:
+                self.assertNotIn(kid, km)
+        finally:
+            await ensure_async(km.shutdown_all())
+
 # Test that it works with a max that is larger than pool size
 class TestSyncMappingKernelManagerApplied(TestAsyncKernelManager):
     __test__ = True
