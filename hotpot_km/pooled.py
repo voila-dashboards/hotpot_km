@@ -12,7 +12,7 @@ import asyncio
 from traitlets import Bool, Dict, Float, Integer, List, Unicode, observe
 
 from .async_utils import await_then_kill, ensure_event_loop, wait_before
-from .client_helper import ExecClient
+from .client_helper import ExecClient, DeadKernelError
 from .limited import LimitedKernelManager, MaximumKernelsException
 from .py_snippets import (
     python_update_cwd_code,
@@ -116,7 +116,7 @@ class PooledKernelManager(LimitedKernelManager):
 
     async def wait_for_pool(self):
         all_tasks = []
-        for name, pool in self._pools.items():
+        for pool in self._pools.values():
             all_tasks.extend(pool)
         await asyncio.gather(*all_tasks)
 
@@ -132,7 +132,7 @@ class PooledKernelManager(LimitedKernelManager):
         while kernel_id is None and self._should_use_pool(kernel_name, kwargs):
             try:
                 kernel_id = await self._pop_pooled_kernel(kernel_name, kwargs)
-            except MaximumKernelsException:
+            except (MaximumKernelsException, DeadKernelError):
                 pass
         if kernel_id is None or kwargs.get("kernel_id") is not None:
             kernel_id = await super().start_kernel(kernel_name=kernel_name, **kwargs)
@@ -150,26 +150,27 @@ class PooledKernelManager(LimitedKernelManager):
         await self._initialize(kernel_name, id_future)
 
     async def shutdown_kernel(self, kernel_id, *args, **kwargs):
-        if kernel_id not in self._kernels:
-            for pool in self._pools.values():
-                for i, f in enumerate(pool):
-                    try:
-                        if f.done() and f.result() == kernel_id:
-                            pool.pop(i)
-                            break
-                    except Exception as e:
-                        if not isinstance(e, MaximumKernelsException):
-                            self.log.exception("Kernel failed starting up")
+        for pool in self._pools.values():
+            for i, f in enumerate(pool):
+                try:
+                    if f.done() and f.result() == kernel_id:
                         pool.pop(i)
-                else:
-                    continue
-                break
+                        break
+                except Exception as e:
+                    if not isinstance(e, MaximumKernelsException):
+                        self.log.exception("Kernel failed starting up")
+                    pool.pop(i)
+            else:
+                continue
+            break
         return await super().shutdown_kernel(kernel_id, *args, **kwargs)
 
     async def shutdown_all(self, *args, **kwargs):
         await super().shutdown_all(*args, **kwargs)
         # Parent doesn't correctly add all created kernels until they have completed startup:
-        for pool in self._pools.values():
+        pools = self._pools
+        self._pools = {}
+        for pool in pools.values():
             # The iteration gets confused if we don't copy pool
             for fut in tuple(pool):
                 try:
@@ -185,7 +186,6 @@ class PooledKernelManager(LimitedKernelManager):
         except Exception as e:
             if not isinstance(e, MaximumKernelsException):
                 self.log.exception("Kernel failed starting up")
-        self._pools = {}
         self._discarded = []
 
     async def _update_kernel(self, kernel_name, kernel_id_future, kwargs):

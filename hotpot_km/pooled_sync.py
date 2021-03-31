@@ -13,7 +13,7 @@ from jupyter_client.multikernelmanager import MultiKernelManager
 from traitlets import Bool, Dict, Float, Integer, List, Unicode, observe
 
 from .async_utils import ensure_event_loop, just_run
-from .client_helper import ExecClient
+from .client_helper import ExecClient, DeadKernelError
 from .limited import SyncLimitedKernelManager, MaximumKernelsException
 from .py_snippets import (
     python_update_cwd_code,
@@ -136,9 +136,12 @@ class SyncPooledKernelManager(SyncLimitedKernelManager):
             kernel_name = self.default_kernel_name
         self.log.debug("Starting kernel: %s", kernel_name)
         kernel_id = kwargs.get("kernel_id")
-        if kernel_id is None and self._should_use_pool(kernel_name, kwargs):
-            kernel_id = just_run(self._pop_pooled_kernel(kernel_name, kwargs))
-        else:
+        while kernel_id is None and self._should_use_pool(kernel_name, kwargs):
+            try:
+                kernel_id = just_run(self._pop_pooled_kernel(kernel_name, kwargs))
+            except DeadKernelError:
+                pass
+        if kernel_id is None or kwargs.get("kernel_id") is not None:
             kernel_id = just_run(super().start_kernel(kernel_name=kernel_name, **kwargs))
 
         try:
@@ -157,16 +160,21 @@ class SyncPooledKernelManager(SyncLimitedKernelManager):
     def shutdown_kernel(self, kernel_id, *args, **kwargs):
         if kernel_id in self._init_futs:
             self._init_futs.pop(kernel_id).cancel()
+        for pool in self._pools.values():
+            if kernel_id in pool:
+                pool.remove(kernel_id)
+                break
         return super().shutdown_kernel(kernel_id, *args, **kwargs)
 
     def shutdown_all(self, *args, **kwargs):
-        for pool in self._pools.values():
+        pools = self._pools
+        self._pools = {}
+        for pool in pools.values():
             # The iteration gets confused if we don't copy pool
             for kernel_id in tuple(pool):
                 self.shutdown_kernel(kernel_id, *args, **kwargs)
         for kernel_id in self.list_kernel_ids():
             self.shutdown_kernel(kernel_id, *args, **kwargs)
-        self._pools = {}
         self._init_futs = {}
 
     async def _update_kernel(self, kernel_name, kernel_id, kwargs):

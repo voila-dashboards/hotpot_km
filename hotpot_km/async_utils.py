@@ -6,6 +6,12 @@ import sys
 import inspect
 from typing import Callable, Awaitable, Any, Union
 
+# Store the original tornado.conucrrent.Future, as it will likely be patched later
+try:
+    import tornado.concurrent
+    _orig_tc_future = tornado.concurrent.Future
+except ImportError:
+    _orig_tc_future = None
 
 async def wait_before(delay, aw):
     await asyncio.sleep(delay)
@@ -53,13 +59,9 @@ def just_run(coro: Awaitable) -> Any:
     """Make the coroutine run, even if there is an event loop running (using nest_asyncio)"""
     if not inspect.isawaitable(coro):
         return coro
-    try:
-        import tornado.concurrent
-        if isinstance(coro, tornado.concurrent.Future):
-            import tornado.platform.asyncio
-            coro = tornado.platform.asyncio.to_asyncio_future(coro)
-    except ImportError:
-        pass
+    if _orig_tc_future and isinstance(coro, _orig_tc_future):
+        import tornado.platform.asyncio
+        coro = tornado.platform.asyncio.to_asyncio_future(coro)
     # original from vaex/asyncio.py
     loop = asyncio._get_running_loop()
     if loop is None:
